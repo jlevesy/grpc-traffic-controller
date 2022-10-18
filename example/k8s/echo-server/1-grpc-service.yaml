@@ -1,0 +1,22 @@
+---
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: echo-server-grpc-v1
+  namespace: echo-server
+spec:
+  listener: echo-server-v1
+  destination:
+    name: echo-server-v1
+    port: 3333
+---
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: echo-server-grpc-v2
+  namespace: echo-server
+spec:
+  listener: echo-server-v2
+  destination:
+    name: echo-server-v2
+    port: 3333

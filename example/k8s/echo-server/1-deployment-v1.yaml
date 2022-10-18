@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: echo-server-v1
+  name: echo-server-v1
+  namespace: echo-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: echo-server-v1
+  template:
+    metadata:
+      labels:
+        app: echo-server-v1
+    spec:
+      serviceAccountName: echo-server
+      containers:
+      - image: ko://github.com/jlevesy/kxds/example/cmd/server
+        imagePullPolicy: Always
+        env:
+          - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+            value: "99"
+          - name: GRPC_GO_LOG_SEVERITY_LEVEL
+            value: "info"
+        name: echo-server
+        args:
+          # Only echo-client is allowed to call this server.
+          - "-bind-address"
+          - ":3333"
+        ports:
+          - name: grpc
+            containerPort: 3333
