@@ -1,0 +1,16 @@
+{
+  "xds_servers": [
+    {
+      "server_uri": "localhost:18000",
+      "server_features": ["xds_v3"],
+      "channel_creds": [
+        {
+          "type": "insecure"
+        }
+      ]
+    }
+  ],
+  "node": {
+    "id": "test-id"
+  }
+}
