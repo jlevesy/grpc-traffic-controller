@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/jlevesy/kxds/pkg/echo"
+	"github.com/jlevesy/kxds/example/pkg/echo"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

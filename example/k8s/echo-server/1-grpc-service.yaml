@@ -1,0 +1,11 @@
+---
+apiVersion: api.kxds.dev/v1alpha1
+kind: Service
+metadata:
+  name: echo-server-grpc
+  namespace: echo-server
+spec:
+  listener: echo-server
+  destination:
+    name: echo-server
+    port: 3333
