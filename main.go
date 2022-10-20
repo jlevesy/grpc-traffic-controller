@@ -24,6 +24,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -31,8 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
 	"github.com/jlevesy/kxds/controllers"
+	"github.com/jlevesy/kxds/xds"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,11 +52,15 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
+	var (
+		metricsAddr          string
+		enableLeaderElection bool
+		probeAddr            string
+		xdsAddr              string
+	)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&xdsAddr, "xds-bind-address", ":18000", "The address the xds server endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -89,12 +96,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = ctrl.NewControllerManagedBy(mgr).For(&kxdsv1alpha1.Service{}).Complete(
-		controllers.NewServiceReconciler(
+	var (
+		xdsCache = cache.NewSnapshotCache(
+			true,
+			xds.DefaultHash,
+			xds.NewLogger(mgr.GetLogger()),
+		)
+
+		cacheReconciller = controllers.NewReconciler(
 			mgr.GetClient(),
-		),
-	); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Service")
+			xds.NewCacheRefresher(xdsCache, xds.DefautHashKey),
+		)
+	)
+
+	if err := mgr.Add(xds.NewServer(xdsCache, xds.ServerConfig{BindAddr: xdsAddr})); err != nil {
+		setupLog.Error(err, "unable to create the xds server")
+		os.Exit(1)
+	}
+
+	// Start looking for xds services.
+	if err = ctrl.NewControllerManagedBy(mgr).For(&kxdsv1alpha1.Service{}).Complete(cacheReconciller); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "kxdsv1alpha1.Service")
+		os.Exit(1)
+	}
+
+	// Start looking for endpoints.
+	if err = ctrl.NewControllerManagedBy(mgr).For(&corev1.Endpoints{}).Complete(cacheReconciller); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "corev1.Endpoints")
 		os.Exit(1)
 	}
 

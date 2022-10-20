@@ -21,22 +21,25 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
+	"github.com/jlevesy/kxds/xds"
 )
 
-// ServiceReconciler reconciles a Service object
-type ServiceReconciler struct {
-	client client.Client
+type Reconciller struct {
+	client    client.Client
+	refresher xds.Refresher
 }
 
-func NewServiceReconciler(cl client.Client) *ServiceReconciler {
-	return &ServiceReconciler{client: cl}
+func NewReconciler(cl client.Client, refresher xds.Refresher) *Reconciller {
+	return &Reconciller{
+		client:    cl,
+		refresher: refresher,
+	}
 }
 
 //+kubebuilder:rbac:groups=api.kxds.dev,resources=services,verbs=get;list;watch;
@@ -44,37 +47,33 @@ func NewServiceReconciler(cl client.Client) *ServiceReconciler {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
-		svc          kxdsv1alpha1.Service
-		svcEndpoints corev1.Endpoints
+		endpoints corev1.EndpointsList
+		services  kxdsv1alpha1.ServiceList
 
 		logger = log.FromContext(ctx)
 	)
 
-	err := r.client.Get(ctx, req.NamespacedName, &svc)
-	switch {
-	case errors.IsNotFound(err):
-		return ctrl.Result{}, nil
-	case err != nil:
-		return ctrl.Result{}, fmt.Errorf("could not find service: %w", err)
-	default:
+	if err := r.client.List(ctx, &endpoints); err != nil {
+		return ctrl.Result{}, fmt.Errorf("could not gather endpoints list %w", err)
 	}
 
-	logger.Info("Updating routing configuration for service")
-
-	err = r.client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: svc.Spec.Destination.Name}, &svcEndpoints)
-	switch {
-	case errors.IsNotFound(err):
-		return ctrl.Result{}, nil
-	case err != nil:
-		return ctrl.Result{}, fmt.Errorf("could not find endpoints: %w", err)
-	default:
+	if err := r.client.List(ctx, &services); err != nil {
+		return ctrl.Result{}, fmt.Errorf("could not gather services list %w", err)
 	}
 
-	if len(svcEndpoints.Subsets) == 0 {
-		logger.Info("no endpoint subsets found, skipping update")
+	logger.Info("Triggering a cache refresh")
+
+	return ctrl.Result{}, r.refresher.RefreshCache(ctx, services.Items, mapEndpointsByName(endpoints.Items))
+}
+
+func mapEndpointsByName(items []corev1.Endpoints) map[types.NamespacedName]corev1.Endpoints {
+	result := make(map[types.NamespacedName]corev1.Endpoints, len(items))
+
+	for _, i := range items {
+		result[types.NamespacedName{Name: i.Name, Namespace: i.Namespace}] = i
 	}
 
-	return ctrl.Result{}, nil
+	return result
 }
