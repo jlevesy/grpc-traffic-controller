@@ -62,6 +62,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: install_example
 install_example: ## install an example in the current cluster
 	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-server
+	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-client
 
 .PHONY: create_cluster
 create_cluster: ## run a local k3d cluster

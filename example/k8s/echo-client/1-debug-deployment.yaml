@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: echo-client
+  name: echo-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-client
+  namespace: echo-client
+  labels:
+    app: echo-client
+spec:
+  selector:
+    matchLabels:
+      app: echo-client
+  template:
+    metadata:
+      labels:
+        app: echo-client
+    spec:
+      serviceAccountName: echo-client
+      containers:
+       - image: ko://github.com/jlevesy/kxds/example/cmd/client
+         imagePullPolicy: Always
+         name: echo-client
+         command: ["sleep","infinity"]
+         env:
+            - name: GRPC_GO_LOG_VERBOSITY_LEVEL
+              value: "99"
+            - name: GRPC_GO_LOG_SEVERITY_LEVEL
+              value: "info"
+            - name: GRPC_XDS_BOOTSTRAP
+              value: /mnt/client/xds-bootstrap.json
+         volumeMounts:
+            - name: xds-bootstrap
+              mountPath: /mnt/client
+              readOnly: true
+      volumes:
+        - name: xds-bootstrap
+          configMap:
+            name: xds-bootstrap
+            items:
+              - key: "xds-bootstrap.json"
+                path: "xds-bootstrap.json"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xds-bootstrap
+  namespace: echo-client
+data:
+  xds-bootstrap.json: |
+    {
+      "xds_servers": [
+        {
+          "server_uri": "kxds-xds-service.kxds-system.svc.cluster.local:18000",
+          "server_features": ["xds_v3"],
+          "channel_creds": [
+            {
+              "type": "insecure"
+            }
+          ]
+        }
+      ],
+      "node": {
+        "id": "test-id"
+      }
+    }

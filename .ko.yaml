@@ -1,0 +1,2 @@
+baseImageOverrides:
+  github.com/jlevesy/kxds/example/cmd/client: alpine:3.16
