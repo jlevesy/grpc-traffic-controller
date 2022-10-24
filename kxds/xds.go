@@ -109,6 +109,15 @@ func makeLoadAssignment(clusterName string, destinationPort int, endpoints corev
 func makeEndpointsFromSubset(ep corev1.EndpointSubset, port int) []*endpoint.LbEndpoint {
 	eps := make([]*endpoint.LbEndpoint, len(ep.Addresses))
 
+	if port == 0 {
+		for _, p := range ep.Ports {
+			port = int(p.Port)
+			if port != 0 {
+				break
+			}
+		}
+	}
+
 	for i, ep := range ep.Addresses {
 		eps[i] = &endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
