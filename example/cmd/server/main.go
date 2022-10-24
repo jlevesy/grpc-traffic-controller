@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"net"
 
-	"github.com/jlevesy/kxds/example/pkg/echo"
+	"github.com/jlevesy/kxds/pkg/echoserver"
+	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -27,21 +27,17 @@ func main() {
 
 	echo.RegisterEchoServer(
 		srv,
-		&echoService{},
+		&echoserver.Server{
+			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				log.Println("Received a request", req.Payload)
+
+				return &echo.EchoReply{Payload: req.Payload}, nil
+			},
+		},
 	)
 
 	log.Println("Server listening on 0.0.0.0:3333")
 	if err := srv.Serve(listener); err != nil {
 		log.Fatal("Serve returned an error: ", err)
 	}
-}
-
-type echoService struct {
-	echo.UnimplementedEchoServer
-}
-
-func (e *echoService) Echo(ctx context.Context, req *echo.EchoRequest) (*echo.EchoReply, error) {
-	log.Println("Received a request", req.Payload)
-
-	return &echo.EchoReply{Payload: req.Payload}, nil
 }

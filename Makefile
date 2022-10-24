@@ -91,7 +91,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: run_local
 run_local:
-	GRPC_XDS_BOOTSTRAP=./example/cmd/client/xds-bootstrap.json go run ./example/cmd/client --addr xds:///echo-server coucou
+	GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json go run ./example/cmd/client --addr xds:///echo-server coucou
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
