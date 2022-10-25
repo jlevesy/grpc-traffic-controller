@@ -20,17 +20,76 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type Destination struct {
-	Name string `json:"name"`
-	Port int    `json:"port"`
+// K8sPort represents a reference to a port. This could be done either by number or by name.
+// +kubebuilder:validation:MaxProperties:=1
+type K8sPort struct {
+	// +optional
+	Number int32 `json:"number,omitempty"`
+	// +optional
+	Name string `json:"name,omitempty"`
 }
 
-// ServiceSpec defines the desired state of Service
-type ServiceSpec struct {
+// K8sService is a reference to a kubernetes service.
+type K8sService struct {
+	// +kubebuilder:validation:Required
+	Name string `json:"name,omitempty"`
+	// +kubebuilder:validation:Required
+	Port K8sPort `json:"port,omitempty"`
+}
+
+// Locality is a logical group of endpoints for a given cluster.
+// Used for failover mechanisms and weighed locality round robin.
+type Locality struct {
+	// Weight of the locality, defaults to one.
+	// +optional
+	// +kubebuilder:default:=1
+	Weight uint32 `json:"weight,omitempty"`
+	// Priority of the locality, if defined, all entries must unique for a given priority and priority should be defined without any gap.
+	// +optional
+	Priority uint32 `json:"priority,omitempty"`
+	// Services is a reference to a kubernetes service.
+	// +optional
+	Service *K8sService `json:"service,omitempty"`
+}
+
+// Cluster is a group of backend servers serving the same services.
+type Cluster struct {
+	// Name is the name of the Cluster
+	// +kubebuilder:validation:Required
+	Name string `json:"name,omitempty"`
+
+	// +kubebuilder:validation:MinItems:=1
+	Localities []Locality `json:"localities,omitempty"`
+}
+
+// ClusterRef is a reference to a cluter defined in the same manifest.
+type ClusterRef struct {
+	// Name is the name of the Cluster
+	// +kubebuilder:validation:Required
+	Name string `json:"name,omitempty"`
+	// Weight is the weight of this cluster.
+	// +optional
+	// +kubebuilder:default:=1
+	Weight uint32 `json:"weight,omitempty"`
+}
+
+// Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
+type Route struct {
+	// Cluster carries the reference to a cluster name.
+	Clusters []ClusterRef `json:"clusters,omitempty"`
+}
+
+// XDSServiceSpec defines the desired state of Service
+type XDSServiceSpec struct {
 	// Listener is the listener name that is used to identitfy a specific service from an xDS perspective.
+	// +kubebuilder:validation:Required
 	Listener string `json:"listener,omitempty"`
-	// Destination is a reference to a core service resource where the traffic should be sent to.
-	Destination Destination `json:"destination,omitempty"`
+	// Routes lists all the routes defined for an XDSService.
+	// +kubebuilder:validation:MinItems:=1
+	Routes []Route `json:"routes,omitempty"`
+	// Routes lists all the  clusters defined for an XDSService.
+	// +kubebuilder:validation:MinItems:=1
+	Clusters []Cluster `json:"clusters,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -41,7 +100,7 @@ type XDSService struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ServiceSpec `json:"spec,omitempty"`
+	Spec XDSServiceSpec `json:"spec,omitempty"`
 }
 
 //+kubebuilder:object:root=true
