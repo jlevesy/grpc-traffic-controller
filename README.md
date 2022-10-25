@@ -2,87 +2,31 @@
 
 KxDS is an xDS control plane for gRPC xDS service discovery. It is a kubernetes controller that reads service definition through a `Service` custom resources.
 
-## Current thoughts and ideas
+## Usage Examples
 
-- This implementation rebuilds the whole configuration state each time it either receives an endpoints or a XDSService update. This is inneficient and causes the SnapshotCache to resent the whole connfig to each connectec client for any (even non relevant) endpoint update, which is bad. I believe the correct way  to do this is to only update CDS and EDS when we receive a k8s endpoint update. (matching by service name in cache could be super efficient?)
-- I'm still very much confused by this idea of nodeID in the case of gRPC clients: the config is the same, independently of who is calling (which is not the case for a standard service mesh here). Buuut, am I shooting myself in the foot by ignoring this dimention? Probably!
+See [the example setup](./example/k8s/echo-server/1-grpc-service.yaml).
 
-## What Could the CRD looks like?
+## Current Status
 
-I'm writing this down as I'm reading gRPC-go's implementation of xDS suppoert. I don't know what I'm doing here!
+This is mostly a toy project at the moment.
 
-Minimal example
+xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), the table tracks their support in kXDS.
 
-```yaml
-apiVersion: api.kxds.dev/v1alpha1
-kind: XDSService
-metadata:
-  name: echo-server-grpc-v1
-  namespace: echo-server
-spec:
-  listener: echo-server-v1
-  routes:
-  - clusters:
-    - name: main-cluster
-      localities:
-      - service:
-          name: echo-server-v1
-          port:
-            name: xds
-```
+| gRFC  | Status | Traking Issue  |
+| ------------- | ------------- | ------------- |
+| [A27](https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md) | Supported (except LRS) | N/A (initial implementation) |
+| [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | TODO | TODO |
+| [A30](https://github.com/grpc/proposal/blob/master/A30-xds-v3.md)  | TODO  | TODO |
+| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO | TODO |
+| [A32](https://github.com/grpc/proposal/blob/master/A32-xds-circuit-breaking.md)  | TODO | TODO |
+| [A33](https://github.com/grpc/proposal/blob/master/A33-Fault-Injection.md)  | TODO | TODO |
+| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO | TODO |
+| [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO | TODO |
+| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | TODO | TODO |
+| [A29](https://github.com/grpc/proposal/blob/master/A29-xds-tls-security.md)  | TODO | TODO |
+| [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO | TODO |
 
-Full example with all the fields sets.
-
-```yaml
-apiVersion: api.kxds.dev/v1alpha1
-kind: XDSService
-metadata:
-  name: echo-server-grpc-v1
-  namespace: echo-server
-spec:
-  listener: echo-server-v1
-  maxStreamDuration: 20s
-  retry:
-    codes:
-      - 300
-      - 400
-    maxAttempts: 10
-    backoff:
-      baseInterval: 10s
-      maxInterval: 60m
-  filters:
-    - todo?
-  routes:
-    - matcher:
-        path: /foo
-        headers:
-      maxStreamDuration: 20s
-      retry:
-        codes:
-          - 300
-          - 400
-        maxAttempts: 10
-        backoff:
-          baseInterval: 10s
-          maxInterval: 60m
-      filtersOverrides:
-        - todo?
-      clusters:
-        - name: some-cluster
-          security:
-            todo: clarify
-          maxRequest: 30 // circuit breaking
-          lbPolicy: round_robin
-          localities:
-            - priority 1
-              weight 2
-              service:
-                name: echo-server-v1
-                 port:
-                name: xds
-            - weight: 1
-              externalName: https://google.com
-```
+LRS server side is left out of scope at the moment, though it could be an interesting thing to elaborate (expose load metrics?) I am unsure of what to do with for now.
 
 ## Getting Started
 
@@ -110,5 +54,7 @@ This command:
 From there you can run
 
 ```bash
-k -n echo-client exec -ti echo-client-58bb8b9864-rcfpd -- /ko-app/client --addr xds:///echo-server hello there
+make client_shell
+
+/ko-app/client --addr xds:///echo-server hello there
 ```
