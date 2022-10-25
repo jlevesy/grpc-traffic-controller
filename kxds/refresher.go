@@ -34,38 +34,33 @@ func NewCacheRefresher(xdsCache cache.SnapshotCache, hashKey string) Refresher {
 
 func (c *cacheRefresher) RefreshCache(ctx context.Context, svcs []kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.NamespacedName]corev1.Endpoints) error {
 	var (
-		listeners []types.Resource
-		routes    []types.Resource
-		clusters  []types.Resource
-		endpoints []types.Resource
+		listeners    []types.Resource
+		routeConfigs []types.Resource
+		clusters     []types.Resource
+		endpoints    []types.Resource
 
 		logger = log.FromContext(ctx)
 	)
 
 	for _, svc := range svcs {
-		eps, ok := k8sEndpoints[ktypes.NamespacedName{Namespace: svc.Namespace, Name: svc.Spec.Destination.Name}]
-		if !ok {
-			logger.Info(
-				"Could not find endpoints, skipping...",
-				"ns",
-				svc.Namespace,
-				"xdsService",
+		xdsSvc, err := makeXDSService(svc, k8sEndpoints)
+		if err != nil {
+			logger.Error(
+				err,
+				"unable to build xdsService, skipping...",
+				"service",
 				svc.Name,
-				"k8sService",
-				svc.Spec.Destination.Name,
+				"namespace",
+				svc.Namespace,
 			)
 
 			continue
 		}
 
-		listenerName := svc.Spec.Listener
-		routeName := listenerName + "-route"
-		clusterName := listenerName + "-cluster"
-
-		listeners = append(listeners, makeListener(listenerName, routeName))
-		routes = append(routes, makeRoute(listenerName, routeName, clusterName))
-		clusters = append(clusters, makeCluster(clusterName))
-		endpoints = append(endpoints, makeLoadAssignment(clusterName, svc.Spec.Destination.Port, eps))
+		listeners = append(listeners, xdsSvc.listener)
+		routeConfigs = append(routeConfigs, xdsSvc.routeConfig)
+		clusters = append(clusters, xdsSvc.clusters...)
+		endpoints = append(endpoints, xdsSvc.loadAssignments...)
 	}
 
 	version := c.versionner.GetVersion()
@@ -74,7 +69,7 @@ func (c *cacheRefresher) RefreshCache(ctx context.Context, svcs []kxdsv1alpha1.X
 		version,
 		map[resource.Type][]types.Resource{
 			resource.ClusterType:  clusters,
-			resource.RouteType:    routes,
+			resource.RouteType:    routeConfigs,
 			resource.ListenerType: listeners,
 			resource.EndpointType: endpoints,
 		},
@@ -91,7 +86,7 @@ func (c *cacheRefresher) RefreshCache(ctx context.Context, svcs []kxdsv1alpha1.X
 		"listeners",
 		len(listeners),
 		"routes",
-		len(routes),
+		len(routeConfigs),
 		"clusters",
 		len(clusters),
 		"endpoints",
