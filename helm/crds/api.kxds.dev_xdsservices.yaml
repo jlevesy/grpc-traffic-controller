@@ -33,24 +33,87 @@ spec:
           metadata:
             type: object
           spec:
-            description: ServiceSpec defines the desired state of Service
+            description: XDSServiceSpec defines the desired state of Service
             properties:
-              destination:
-                description: Destination is a reference to a core service resource
-                  where the traffic should be sent to.
-                properties:
-                  name:
-                    type: string
-                  port:
-                    type: integer
-                required:
-                - name
-                - port
-                type: object
+              clusters:
+                description: Routes lists all the  clusters defined for an XDSService.
+                items:
+                  description: Cluster is a group of backend servers serving the same
+                    services.
+                  properties:
+                    localities:
+                      items:
+                        description: Locality is a logical group of endpoints for
+                          a given cluster. Used for failover mechanisms and weighed
+                          locality round robin.
+                        properties:
+                          priority:
+                            description: Priority of the locality, if defined, all
+                              entries must unique for a given priority and priority
+                              should be defined without any gap.
+                            format: int32
+                            type: integer
+                          service:
+                            description: Services is a reference to a kubernetes service.
+                            properties:
+                              name:
+                                type: string
+                              port:
+                                description: K8sPort represents a reference to a port.
+                                  This could be done either by number or by name.
+                                maxProperties: 1
+                                properties:
+                                  name:
+                                    type: string
+                                  number:
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
+                          weight:
+                            default: 1
+                            description: Weight of the locality, defaults to one.
+                            format: int32
+                            type: integer
+                        type: object
+                      minItems: 1
+                      type: array
+                    name:
+                      description: Name is the name of the Cluster
+                      type: string
+                  type: object
+                minItems: 1
+                type: array
               listener:
                 description: Listener is the listener name that is used to identitfy
                   a specific service from an xDS perspective.
                 type: string
+              routes:
+                description: Routes lists all the routes defined for an XDSService.
+                items:
+                  description: Route allows to match an outoing request to a specific
+                    cluster, it allows to do HTTP level manipulation on the outgoing
+                    requests as well as matching.
+                  properties:
+                    clusters:
+                      description: Cluster carries the reference to a cluster name.
+                      items:
+                        description: ClusterRef is a reference to a cluter defined
+                          in the same manifest.
+                        properties:
+                          name:
+                            description: Name is the name of the Cluster
+                            type: string
+                          weight:
+                            default: 1
+                            description: Weight is the weight of this cluster.
+                            format: int32
+                            type: integer
+                        type: object
+                      type: array
+                  type: object
+                minItems: 1
+                type: array
             type: object
         type: object
     served: true
