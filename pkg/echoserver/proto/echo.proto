@@ -13,4 +13,5 @@ message EchoRequest {
 
 message EchoReply {
   string payload = 1;
+  string server_id = 2;
 }

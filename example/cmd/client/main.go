@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	_ "google.golang.org/grpc/xds"
 
-	"github.com/jlevesy/kxds/example/pkg/echo"
+	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
 )
 
 func main() {

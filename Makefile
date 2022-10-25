@@ -1,19 +1,10 @@
 
-# Image URL to use all building/pushing image targets
-IMG ?= controller:latest
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.25.0
-K3S_VERSION =v$(ENVTEST_K8S_VERSION)-k3s1
-
-# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+K3S_VERSION =v1.25.0-k3s1
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
-
-# Setting SHELL to bash allows bash commands to be executed by recipes.
-# Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
@@ -21,17 +12,6 @@ SHELL = /usr/bin/env bash -o pipefail
 all: build
 
 ##@ General
-
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
 
 .PHONY: help
 help: ## Display this help.
@@ -42,11 +22,20 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName='PLACEHOLDER' crd webhook paths="./..." output:rbac:artifacts:config=helm/templates output:crd:artifacts:config=helm/crds/
-	sed -i '' 's/PLACEHOLDER/\{\{ include \"helm.fullname\" \. \}\}-controller/g' helm/templates/role.yaml
+	sed -i 's/PLACEHOLDER/\{\{ include \"helm.fullname\" \. \}\}-controller/g' helm/templates/role.yaml
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: gen-protoc
+gen-protoc: ## Generate protoc code for the echo server.
+	protoc  \
+		--go_out=. \
+		--go_opt=paths=source_relative \
+    --go-grpc_out=. \
+		--go-grpc_opt=paths=source_relative \
+    pkg/echoserver/proto/echo.proto
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -57,14 +46,14 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+test: manifests generate gen-protoc fmt vet ## Run tests.
+	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -v
 
 .PHONY: dev
 dev: create_cluster deploy install_example
 
 .PHONY: install_example
-install_example: ## install an example in the current cluster
+install_example: gen-protoc ## install an example in the current cluster
 	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-server
 	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-client
 
@@ -102,15 +91,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: run_local
 run_local:
-	GRPC_XDS_BOOTSTRAP=./example/cmd/client/xds-bootstrap.json go run ./example/cmd/client --addr xds:///echo-server coucou
-
-##@ Deployment
-
-ifndef ignore-not-found
-  ignore-not-found = false
-endif
-
-##@ Build Dependencies
+	GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json go run ./example/cmd/client --addr xds:///echo-server coucou
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
@@ -119,7 +100,6 @@ $(LOCALBIN):
 
 ## Tool Binaries
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 CONTROLLER_TOOLS_VERSION ?= v0.9.2
@@ -128,8 +108,3 @@ CONTROLLER_TOOLS_VERSION ?= v0.9.2
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
-
-.PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
