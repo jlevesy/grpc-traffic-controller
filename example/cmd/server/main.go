@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net"
+	"os"
 
 	"github.com/jlevesy/kxds/pkg/echoserver"
 	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
@@ -12,11 +13,18 @@ import (
 )
 
 func main() {
-	var bindAddress string
+	var (
+		bindAddress string
+	)
 
 	flag.StringVar(&bindAddress, "bind-address", ":3333", "server bind address")
 
 	flag.Parse()
+
+	hostName, err := os.Hostname()
+	if err != nil {
+		log.Fatal("Could not read hostname", hostName)
+	}
 
 	srv := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 
@@ -31,7 +39,7 @@ func main() {
 			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
 				log.Println("Received a request", req.Payload)
 
-				return &echo.EchoReply{Payload: req.Payload}, nil
+				return &echo.EchoReply{Payload: req.Payload, ServerId: hostName}, nil
 			},
 		},
 	)
