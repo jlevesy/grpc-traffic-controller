@@ -12,4 +12,3 @@ spec:
     targetPort: grpc
   selector:
     app: echo-server-v1
-

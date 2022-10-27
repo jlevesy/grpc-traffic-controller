@@ -1,22 +1,76 @@
+# gRFC A27 examples
+# https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md
 ---
+# Basic example: one listeners maps to a route and a single K8s service
+# Listener address: xds://echo-server-basic
 apiVersion: api.kxds.dev/v1alpha1
 kind: XDSService
 metadata:
-  name: echo-server-grpc-v1
+  name: basic-example
   namespace: echo-server
 spec:
-  listener: echo-server-v1
-  destination:
-    name: echo-server-v1
-    port: 3333
+  listener: echo-server-basic
+  routes:
+    - clusters:
+        - name: default
+  clusters:
+    - name: default
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
+# Locality based Weighted Round Robin: This example makes all gRPC clients using this listener send 20% of their traffic to
+# the v2 instance of the echo-server, and 80% to the v1 instance.
+# Listener address: xds://echo-server-locality-wrr
 apiVersion: api.kxds.dev/v1alpha1
 kind: XDSService
 metadata:
-  name: echo-server-grpc-v2
+  name: locality-wrr
   namespace: echo-server
 spec:
-  listener: echo-server-v2
-  destination:
-    name: echo-server-v2
-    port: 3333
+  listener: echo-server-locality-wrr
+  routes:
+    - clusters:
+        - name: default
+  clusters:
+    - name: default
+      localities:
+        - weight: 80
+          service:
+            name: echo-server-v1
+            port:
+              name: grpc
+        - weight: 20
+          service:
+            name: echo-server-v2
+            port:
+              name: grpc
+---
+# Locality fallback: This example makes all gRPC clients using this listener send 100% the the `echo-server-v2` service
+# but fall back to the v1 instance if the v2 service goes down.
+# Listener address: xds://echo-server-fallback
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: fallback
+  namespace: echo-server
+spec:
+  listener: echo-server-fallback
+  routes:
+    - clusters:
+        - name: default
+  clusters:
+    - name: default
+      localities:
+        - priority: 1
+          service:
+            name: echo-server-v1
+            port:
+              name: grpc
+        - priority: 0
+          service:
+            name: echo-server-v2
+            port:
+              name: grpc
