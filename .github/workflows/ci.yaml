@@ -19,7 +19,7 @@ jobs:
           check-latest: true
           cache: true
       - name: Run Tests
-        run: make test
+        run: make ci_test
 
   lint-code:
     name: Lint code

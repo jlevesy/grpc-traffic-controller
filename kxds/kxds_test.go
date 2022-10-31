@@ -32,7 +32,9 @@ func TestReconciller(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
-	defer backends.Stop()
+	defer func() {
+		_ = backends.Stop()
+	}()
 
 	var (
 		xdsCache = cache.NewSnapshotCache(
