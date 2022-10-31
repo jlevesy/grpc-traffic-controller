@@ -12,7 +12,7 @@ This is mostly a toy project at the moment.
 
 xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), the table tracks their support in kXDS.
 
-| gRFC  | Status | Traking Issue  |
+| gRFC  | Status | Tracking Issue  |
 | ------------- | ------------- | ------------- |
 | [A27](https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md) | Supported (except LRS) | N/A (initial implementation) |
 | [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | TODO | TODO |
