@@ -53,7 +53,7 @@ func main() {
 			return
 		}
 
-		log.Println("Received echo response", resp.Payload)
+		log.Println("Received a response from:", resp.ServerId, ".Payload is:", resp.Payload)
 	})
 }
 

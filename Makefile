@@ -1,12 +1,12 @@
-
-K3S_VERSION =v1.25.0-k3s1
+TEST_COUNT?=1
+K3S_VERSION=v1.25.0-k3s1
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
-SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
+SHELL=/usr/bin/env bash -o pipefail
+.SHELLFLAGS=-ec
 
 .PHONY: all
 all: build
@@ -47,10 +47,18 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate gen-protoc fmt vet ## Run tests.
-	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -v
+	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v
+
+.PHONY: ci_test
+ci_test: ## Run tests without generation.
+	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v
 
 .PHONY: dev
 dev: create_cluster deploy install_example
+
+.PHONY: client_shell
+client_shell:
+	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[0].metadata.name}") -- ash
 
 .PHONY: install_example
 install_example: gen-protoc ## install an example in the current cluster

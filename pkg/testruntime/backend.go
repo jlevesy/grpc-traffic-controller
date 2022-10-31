@@ -11,19 +11,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-type Runtime struct {
-	Backends []Backend
-	Client   *fake.ClientBuilder
-}
+type Backends []Backend
 
 type Config struct {
 	BackendCount int
 }
 
-func New(cfg Config) (*Runtime, error) {
+func StartBackends(cfg Config) (Backends, error) {
 	var (
 		err      error
 		backends = make([]Backend, cfg.BackendCount)
@@ -44,14 +40,11 @@ func New(cfg Config) (*Runtime, error) {
 		}
 	}
 
-	return &Runtime{
-		Backends: backends,
-		Client:   fake.NewClientBuilder().WithScheme(scheme.Scheme),
-	}, nil
+	return Backends(backends), nil
 }
 
-func (r *Runtime) Stop() error {
-	for _, b := range r.Backends {
+func (bs Backends) Stop() error {
+	for _, b := range bs {
 		_ = b.Close()
 	}
 
@@ -92,6 +85,19 @@ func newBackend(id string) (Backend, error) {
 	}, nil
 }
 
+func (b *Backend) PortNumber() int32 {
+	_, p, err := net.SplitHostPort(b.Listener.Addr().String())
+	if err != nil {
+		panic(err)
+	}
+
+	pint, err := strconv.ParseInt(p, 10, 32)
+	if err != nil {
+		panic(err)
+	}
+
+	return int32(pint)
+}
 func (b *Backend) Close() error {
 	b.Server.Stop()
 	return b.Listener.Close()
