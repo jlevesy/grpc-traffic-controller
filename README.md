@@ -12,19 +12,19 @@ This is mostly a toy project at the moment.
 
 xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), the table tracks their support in kXDS.
 
-| gRFC  | Status | Tracking Issue  |
-| ------------- | ------------- | ------------- |
+| gRFC  | Status |
+| ------------- | ------------- |
 | [A27](https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md) | Supported (except LRS) | N/A (initial implementation) |
-| [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | TODO | TODO |
-| [A30](https://github.com/grpc/proposal/blob/master/A30-xds-v3.md)  | TODO  | TODO |
-| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO | TODO |
-| [A32](https://github.com/grpc/proposal/blob/master/A32-xds-circuit-breaking.md)  | TODO | TODO |
-| [A33](https://github.com/grpc/proposal/blob/master/A33-Fault-Injection.md)  | TODO | TODO |
-| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO | TODO |
-| [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO | TODO |
-| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | TODO | TODO |
-| [A29](https://github.com/grpc/proposal/blob/master/A29-xds-tls-security.md)  | TODO | TODO |
-| [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO | TODO |
+| [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | Partially Supported (Path only) |
+| [A30](https://github.com/grpc/proposal/blob/master/A30-xds-v3.md)  | TODO  |
+| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO |
+| [A32](https://github.com/grpc/proposal/blob/master/A32-xds-circuit-breaking.md)  | TODO |
+| [A33](https://github.com/grpc/proposal/blob/master/A33-Fault-Injection.md)  | TODO |
+| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO |
+| [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO |
+| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | TODO |
+| [A29](https://github.com/grpc/proposal/blob/master/A29-xds-tls-security.md)  | TODO |
+| [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO |
 
 LRS server side is left out of scope at the moment, though it could be an interesting thing to elaborate (expose load metrics?) I am unsure of what to do with for now.
 
