@@ -33,6 +33,8 @@ type K8sPort struct {
 type K8sService struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name,omitempty"`
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 	// +kubebuilder:validation:Required
 	Port K8sPort `json:"port,omitempty"`
 }

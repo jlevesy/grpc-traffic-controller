@@ -58,6 +58,8 @@ spec:
                             properties:
                               name:
                                 type: string
+                              namespace:
+                                type: string
                               port:
                                 description: K8sPort represents a reference to a port.
                                   This could be done either by number or by name.

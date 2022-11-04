@@ -200,7 +200,7 @@ func makeCluster(clusterName string) *cluster.Cluster {
 	}
 }
 
-func makeLoadAssignment(clusterName, namespace string, localities []kxdsv1alpha1.Locality, k8sEndpoints map[ktypes.NamespacedName]corev1.Endpoints) (*endpoint.ClusterLoadAssignment, error) {
+func makeLoadAssignment(clusterName, currentNamespace string, localities []kxdsv1alpha1.Locality, k8sEndpoints map[ktypes.NamespacedName]corev1.Endpoints) (*endpoint.ClusterLoadAssignment, error) {
 	xdsLocalities := make([]*endpoint.LocalityLbEndpoints, len(localities))
 
 	for i, locSpec := range localities {
@@ -208,7 +208,13 @@ func makeLoadAssignment(clusterName, namespace string, localities []kxdsv1alpha1
 			return nil, errors.New("unsupported non k8s service locality")
 		}
 
-		k8sEndpoint, ok := k8sEndpoints[ktypes.NamespacedName{Namespace: namespace, Name: locSpec.Service.Name}]
+		targetNamespace := locSpec.Service.Namespace
+
+		if targetNamespace == "" {
+			targetNamespace = currentNamespace
+		}
+
+		k8sEndpoint, ok := k8sEndpoints[ktypes.NamespacedName{Namespace: targetNamespace, Name: locSpec.Service.Name}]
 		if !ok {
 			return nil, errors.New("no k8s endpoints found")
 		}
