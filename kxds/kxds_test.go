@@ -40,7 +40,7 @@ func TestReconciller(t *testing.T) {
 		xdsCache = cache.NewSnapshotCache(
 			false,
 			kxds.DefaultHash,
-			nil,
+			testruntime.NoopCacheLogger{},
 		)
 
 		server = kxds.NewXDSServer(
@@ -93,6 +93,7 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
+				testruntime.MethodEcho,
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					testruntime.BackendCalledExact("backend-0", 1),
@@ -133,6 +134,7 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
+				testruntime.MethodEcho,
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					testruntime.BackendCalledExact("backend-0", 1),
@@ -182,6 +184,7 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallN(
 				"xds:///echo_server",
+				testruntime.MethodEcho,
 				10000,
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
@@ -238,12 +241,260 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
+				testruntime.MethodEcho,
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					// No calls for the first set of backends
 					testruntime.BackendCalledExact("backend-0", 0),
 					// One call for the second backend.
 					testruntime.BackendCalledExact("backend-1", 1),
+				),
+			),
+		},
+		{
+			desc: "path matching",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithPathMatcher(
+								kxdsv1alpha1.PathMatcher{
+									Path: "/echo.Echo/EchoPremium",
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"v2",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service-v2",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+						testruntime.BuildCluster(
+							"v1",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEchoPremium,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// One call for the second backend, because we're calling premium.
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEcho,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "prefix matching",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithPathMatcher(
+								kxdsv1alpha1.PathMatcher{
+									Prefix: "/echo.Echo/EchoP",
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"v2",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service-v2",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+						testruntime.BuildCluster(
+							"v1",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEchoPremium,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// One call for the second backend, because we're calling premium.
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEcho,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "regexp matching",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithPathMatcher(
+								kxdsv1alpha1.PathMatcher{
+									Prefix: "/echo.Echo/EchoP",
+									Regex: kxdsv1alpha1.RegexPathMatcher{
+										Regex:  ".*/EchoPremium",
+										Engine: "re2",
+									},
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"v2",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service-v2",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+						testruntime.BuildCluster(
+							"v1",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEchoPremium,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// One call for the second backend, because we're calling premium.
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEcho,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
 				),
 			),
 		},
