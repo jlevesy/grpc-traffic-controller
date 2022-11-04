@@ -69,7 +69,10 @@ func newBackend(id string) (Backend, error) {
 		srv,
 		&echoserver.Server{
 			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
-				return &echo.EchoReply{ServerId: id, Payload: req.Payload}, nil
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "standard"}, nil
+			},
+			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "premium"}, nil
 			},
 		},
 	)
@@ -102,3 +105,10 @@ func (b *Backend) Close() error {
 	b.Server.Stop()
 	return b.Listener.Close()
 }
+
+type NoopCacheLogger struct{}
+
+func (NoopCacheLogger) Debugf(format string, args ...interface{}) {}
+func (NoopCacheLogger) Infof(format string, args ...interface{})  {}
+func (NoopCacheLogger) Warnf(format string, args ...interface{})  {}
+func (NoopCacheLogger) Errorf(format string, args ...interface{}) {}
