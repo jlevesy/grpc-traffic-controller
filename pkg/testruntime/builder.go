@@ -69,8 +69,18 @@ func WithClusterRefs(refs ...kxdsv1alpha1.ClusterRef) RouteOption {
 	}
 }
 
+func WithPathMatcher(pm kxdsv1alpha1.PathMatcher) RouteOption {
+	return func(r *kxdsv1alpha1.Route) {
+		r.Path = pm
+	}
+}
+
 func BuildRoute(opts ...RouteOption) kxdsv1alpha1.Route {
-	var r kxdsv1alpha1.Route
+	r := kxdsv1alpha1.Route{
+		Path: kxdsv1alpha1.PathMatcher{
+			Prefix: "/",
+		},
+	}
 
 	for _, opt := range opts {
 		opt(&r)

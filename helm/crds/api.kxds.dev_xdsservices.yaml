@@ -111,6 +111,31 @@ spec:
                             type: integer
                         type: object
                       type: array
+                    path:
+                      description: Path allows to specfies path matcher for a specific
+                        route.
+                      properties:
+                        path:
+                          description: Path Must match exactly.
+                          type: string
+                        prefix:
+                          default: /
+                          description: Path Must match the prefix of the request.
+                          type: string
+                        regex:
+                          description: Path Must Match a Regex.
+                          properties:
+                            engine:
+                              default: re2
+                              description: The regexp engine to use.
+                              enum:
+                              - re2
+                              type: string
+                            regex:
+                              description: Regexp to evaluate the path against.
+                              type: string
+                          type: object
+                      type: object
                   type: object
                 minItems: 1
                 type: array

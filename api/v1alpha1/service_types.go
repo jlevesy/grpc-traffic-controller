@@ -73,8 +73,33 @@ type ClusterRef struct {
 	Weight uint32 `json:"weight,omitempty"`
 }
 
+type RegexPathMatcher struct {
+	// Regexp to evaluate the path against.
+	Regex string `json:"regex,omitempty"`
+	// The regexp engine to use.
+	// +kubebuilder:validation:Enum:=re2
+	// +kubebuilder:default:=re2
+	Engine string `json:"engine,omitempty"`
+}
+
+// PathMatcher inditactes a match based on the path of a gRPC call.
+type PathMatcher struct {
+	// Path Must match the prefix of the request.
+	// +optional
+	// +kubebuilder:default:=/
+	Prefix string `json:"prefix,omitempty"`
+	// Path Must match exactly.
+	// +optional
+	Path string `json:"path,omitempty"`
+	// Path Must Match a Regex.
+	// +optional
+	Regex RegexPathMatcher `json:"regex,omitempty"`
+}
+
 // Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
 type Route struct {
+	// Path allows to specfies path matcher for a specific route.
+	Path PathMatcher `json:"path,omitempty"`
 	// Cluster carries the reference to a cluster name.
 	Clusters []ClusterRef `json:"clusters,omitempty"`
 }

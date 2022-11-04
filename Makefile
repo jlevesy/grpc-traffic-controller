@@ -47,7 +47,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate gen-protoc fmt vet ## Run tests.
-	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v
+	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v -run=$(T)
 
 .PHONY: ci_test
 ci_test: ## Run tests without generation.

@@ -15,13 +15,15 @@ import (
 
 func main() {
 	var (
-		ctx    = context.Background()
-		addr   string
-		period time.Duration
+		ctx     = context.Background()
+		addr    string
+		period  time.Duration
+		premium bool
 	)
 
 	flag.StringVar(&addr, "addr", "localhost:3333", "the address to connect to")
 	flag.DurationVar(&period, "period", 0*time.Second, "period to make calls")
+	flag.BoolVar(&premium, "premium", false, "call premium")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -47,13 +49,22 @@ func main() {
 	callPolicy(func() {
 		log.Println("Calling echo server")
 
-		resp, err := client.Echo(ctx, &echo.EchoRequest{Payload: flag.Arg(0)})
+		var (
+			resp *echo.EchoReply
+			err  error
+		)
+
+		if premium {
+			resp, err = client.EchoPremium(ctx, &echo.EchoRequest{Payload: flag.Arg(0)})
+		} else {
+			resp, err = client.Echo(ctx, &echo.EchoRequest{Payload: flag.Arg(0)})
+		}
 		if err != nil {
 			log.Println("unable to send echo request", err)
 			return
 		}
 
-		log.Println("Received a response from:", resp.ServerId, ".Payload is:", resp.Payload)
+		log.Println("Received a response from:", resp.ServerId, ".Payload is:", resp.Payload, "Variant is:", resp.Variant)
 	})
 }
 

@@ -39,7 +39,20 @@ func main() {
 			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
 				log.Println("Received a request", req.Payload)
 
-				return &echo.EchoReply{Payload: req.Payload, ServerId: hostName}, nil
+				return &echo.EchoReply{
+					Payload:  req.Payload,
+					ServerId: hostName,
+					Variant:  "standard",
+				}, nil
+			},
+			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				log.Println("Received a request v2", req.Payload)
+
+				return &echo.EchoReply{
+					Payload:  req.Payload,
+					ServerId: hostName,
+					Variant:  "premium",
+				}, nil
 			},
 		},
 	)

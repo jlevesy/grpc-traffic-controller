@@ -11,6 +11,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -31,16 +32,22 @@ type xdsService struct {
 
 func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.NamespacedName]corev1.Endpoints) (xdsService, error) {
 	var (
+		err error
+
 		resourcePrefix  = "kxds" + "." + svc.Name + "." + svc.Namespace + "."
 		listenerName    = svc.Spec.Listener
 		routeConfigName = resourcePrefix + "routeconfig"
 
 		xdsSvc = xdsService{
-			listener:    makeListener(listenerName, routeConfigName),
-			routeConfig: makeRouteConfig(resourcePrefix, routeConfigName, listenerName, svc.Spec.Routes),
-			clusters:    make([]types.Resource, len(svc.Spec.Clusters)),
+			listener: makeListener(listenerName, routeConfigName),
+			clusters: make([]types.Resource, len(svc.Spec.Clusters)),
 		}
 	)
+
+	xdsSvc.routeConfig, err = makeRouteConfig(resourcePrefix, routeConfigName, listenerName, svc.Spec.Routes)
+	if err != nil {
+		return xdsSvc, err
+	}
 
 	for i, clusterSpec := range svc.Spec.Clusters {
 		clusterName := resourcePrefix + clusterSpec.Name
@@ -92,17 +99,17 @@ func makeListener(listenerName string, routeConfigName string) *listener.Listene
 	}
 }
 
-func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, routeSpecs []kxdsv1alpha1.Route) *route.RouteConfiguration {
+func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, routeSpecs []kxdsv1alpha1.Route) (*route.RouteConfiguration, error) {
 	routes := make([]*route.Route, len(routeSpecs))
 
 	for i, routeSpec := range routeSpecs {
+		match, err := makeRouteMatch(routeSpec)
+		if err != nil {
+			return nil, err
+		}
+
 		routes[i] = &route.Route{
-			Match: &route.RouteMatch{
-				// TODO(jly): implement matchers support.
-				PathSpecifier: &route.RouteMatch_Prefix{
-					Prefix: "/",
-				},
-			},
+			Match: match,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
 					ClusterSpecifier: &route.RouteAction_WeightedClusters{
@@ -123,7 +130,38 @@ func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, route
 				Routes:  routes,
 			},
 		},
+	}, nil
+}
+
+func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
+	var match route.RouteMatch
+
+	switch {
+	case spec.Path.Regex.Regex != "":
+		if spec.Path.Regex.Engine != "re2" {
+			return nil, fmt.Errorf("unsupported engine %q", spec.Path.Regex.Engine)
+		}
+
+		match.PathSpecifier = &route.RouteMatch_SafeRegex{
+			SafeRegex: &matcher.RegexMatcher{
+				Regex: spec.Path.Regex.Regex,
+				EngineType: &matcher.RegexMatcher_GoogleRe2{
+					GoogleRe2: &matcher.RegexMatcher_GoogleRE2{},
+				},
+			},
+		}
+
+	case spec.Path.Path != "":
+		match.PathSpecifier = &route.RouteMatch_Path{
+			Path: spec.Path.Path,
+		}
+	default:
+		match.PathSpecifier = &route.RouteMatch_Prefix{
+			Prefix: spec.Path.Prefix,
+		}
 	}
+
+	return &match, nil
 }
 
 func makeWeightedClusters(resourcePrefix string, routeSpec kxdsv1alpha1.Route) *route.WeightedCluster {

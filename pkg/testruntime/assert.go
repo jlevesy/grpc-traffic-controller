@@ -12,19 +12,37 @@ import (
 	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
 )
 
+func MultiAssert(asserts ...func(t *testing.T)) func(t *testing.T) {
+	return func(t *testing.T) {
+		for _, assert := range asserts {
+			assert(t)
+		}
+	}
+}
+
 type call struct {
 	addr      string
 	backendID string
 	err       error
 }
 
-type CallsAssertion func(t *testing.T, calls []call)
+type Method func(cl echo.EchoClient, req *echo.EchoRequest) (*echo.EchoReply, error)
 
-func CallOnce(addr string, assertions ...CallsAssertion) func(t *testing.T) {
-	return CallN(addr, 1, assertions...)
+func MethodEcho(cl echo.EchoClient, req *echo.EchoRequest) (*echo.EchoReply, error) {
+	return cl.Echo(context.Background(), req)
 }
 
-func CallN(addr string, count int, assertions ...CallsAssertion) func(t *testing.T) {
+func MethodEchoPremium(cl echo.EchoClient, req *echo.EchoRequest) (*echo.EchoReply, error) {
+	return cl.EchoPremium(context.Background(), req)
+}
+
+type CallsAssertion func(t *testing.T, calls []call)
+
+func CallOnce(addr string, method Method, assertions ...CallsAssertion) func(t *testing.T) {
+	return CallN(addr, method, 1, assertions...)
+}
+
+func CallN(addr string, method Method, count int, assertions ...CallsAssertion) func(t *testing.T) {
 	return func(t *testing.T) {
 		conn, err := grpc.Dial(
 			addr,
@@ -44,8 +62,8 @@ func CallN(addr string, count int, assertions ...CallsAssertion) func(t *testing
 		for i := 0; i < count; i++ {
 			var c call
 
-			resp, err := client.Echo(
-				context.Background(),
+			resp, err := method(
+				client,
 				&echo.EchoRequest{Payload: "Hello there"},
 			)
 
@@ -87,6 +105,12 @@ func AggregateByBackendID(asserts ...AggregatedCallAssertion) CallsAssertion {
 		for _, assert := range asserts {
 			assert(t, agg)
 		}
+	}
+}
+
+func DumpCounts(t *testing.T, aggs map[string]int) {
+	for k, v := range aggs {
+		t.Logf("%s => %d", k, v)
 	}
 }
 

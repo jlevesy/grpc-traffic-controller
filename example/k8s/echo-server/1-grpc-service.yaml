@@ -74,3 +74,94 @@ spec:
             name: echo-server-v2
             port:
               name: grpc
+# gRFC A28 examples
+# https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md
+---
+# Path based routing: Route calls to premium service RPC to the echo-server v2
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: path-matcher
+  namespace: echo-server
+spec:
+  listener: echo-server-path
+  routes:
+    - path:
+        path: /echo.Echo/EchoPremium
+      clusters:
+        - name: v2
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v2
+      localities:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - name: v1
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+---
+# Path Prefix based routing: Route calls to premium service RPC to the echo-server v2
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: prefix-matcher
+  namespace: echo-server
+spec:
+  listener: echo-server-prefix
+  routes:
+    - path:
+        prefix: /echo.Echo/EchoP
+      clusters:
+        - name: v2
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v2
+      localities:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - name: v1
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+---
+# Regex Prefix based routing: Route calls to premium service RPC to the echo-server v2
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: regex-matcher
+  namespace: echo-server
+spec:
+  listener: echo-server-regex
+  routes:
+    - path:
+        regex:
+          # Regex must match the entierity of the path.
+          regex: .*/EchoPremium
+      clusters:
+        - name: v2
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v2
+      localities:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - name: v1
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
