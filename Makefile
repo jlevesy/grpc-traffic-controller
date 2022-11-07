@@ -1,4 +1,5 @@
 TEST_COUNT?=1
+TEST_PKG?=kxds
 K3S_VERSION=v1.25.0-k3s1
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -48,6 +49,10 @@ vet: ## Run go vet against code.
 .PHONY: test
 test: manifests generate gen-protoc fmt vet ## Run tests.
 	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v -run=$(T)
+
+.PHONY: debug_test 
+debug_test: manifests generate gen-protoc fmt vet ## Run tests.
+	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json dlv test ./$(TEST_PKG) -- -test.count=$(TEST_COUNT) -test.v -test.run=$(T)
 
 .PHONY: ci_test
 ci_test: ## Run tests without generation.
