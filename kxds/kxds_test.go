@@ -20,6 +20,35 @@ var (
 	grpcPort = kxdsv1alpha1.K8sPort{
 		Name: "grpc",
 	}
+
+	v1v2ClusterTopology = testruntime.WithClusters(
+		testruntime.BuildCluster(
+			"v2",
+			testruntime.WithLocalities(
+				testruntime.BuildLocality(
+					testruntime.WithK8sService(
+						kxdsv1alpha1.K8sService{
+							Name: "test-service-v2",
+							Port: grpcPort,
+						},
+					),
+				),
+			),
+		),
+		testruntime.BuildCluster(
+			"v1",
+			testruntime.WithLocalities(
+				testruntime.BuildLocality(
+					testruntime.WithK8sService(
+						kxdsv1alpha1.K8sService{
+							Name: "test-service",
+							Port: grpcPort,
+						},
+					),
+				),
+			),
+		),
+	)
 )
 
 func TestReconciller(t *testing.T) {
@@ -93,7 +122,9 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
-				testruntime.MethodEcho,
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					testruntime.BackendCalledExact("backend-0", 1),
@@ -134,7 +165,9 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
-				testruntime.MethodEcho,
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					testruntime.BackendCalledExact("backend-0", 1),
@@ -174,7 +207,9 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
-				testruntime.MethodEcho,
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					testruntime.BackendCalledExact("backend-0", 1),
@@ -224,7 +259,9 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallN(
 				"xds:///echo_server",
-				testruntime.MethodEcho,
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
 				10000,
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
@@ -281,7 +318,9 @@ func TestReconciller(t *testing.T) {
 			},
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
-				testruntime.MethodEcho,
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					// No calls for the first set of backends
@@ -292,7 +331,7 @@ func TestReconciller(t *testing.T) {
 			),
 		},
 		{
-			desc: "path matching",
+			desc: "exact path matching",
 			endpoints: []corev1.Endpoints{
 				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
 				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
@@ -318,40 +357,15 @@ func TestReconciller(t *testing.T) {
 						),
 						testruntime.BuildSingleRoute("v1"),
 					),
-					testruntime.WithClusters(
-						testruntime.BuildCluster(
-							"v2",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service-v2",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-						testruntime.BuildCluster(
-							"v1",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-					),
+					v1v2ClusterTopology,
 				),
 			},
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEchoPremium,
+					testruntime.BuildCaller(
+						testruntime.MethodEchoPremium,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
@@ -361,7 +375,9 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEcho,
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
@@ -373,7 +389,7 @@ func TestReconciller(t *testing.T) {
 			),
 		},
 		{
-			desc: "prefix matching",
+			desc: "prefix path matching",
 			endpoints: []corev1.Endpoints{
 				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
 				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
@@ -399,40 +415,15 @@ func TestReconciller(t *testing.T) {
 						),
 						testruntime.BuildSingleRoute("v1"),
 					),
-					testruntime.WithClusters(
-						testruntime.BuildCluster(
-							"v2",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service-v2",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-						testruntime.BuildCluster(
-							"v1",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-					),
+					v1v2ClusterTopology,
 				),
 			},
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEchoPremium,
+					testruntime.BuildCaller(
+						testruntime.MethodEchoPremium,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
@@ -442,7 +433,9 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEcho,
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
@@ -454,7 +447,7 @@ func TestReconciller(t *testing.T) {
 			),
 		},
 		{
-			desc: "regexp matching",
+			desc: "regexp path matching",
 			endpoints: []corev1.Endpoints{
 				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
 				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
@@ -469,7 +462,7 @@ func TestReconciller(t *testing.T) {
 							testruntime.WithPathMatcher(
 								kxdsv1alpha1.PathMatcher{
 									Prefix: "/echo.Echo/EchoP",
-									Regex: kxdsv1alpha1.RegexMatcher{
+									Regex: &kxdsv1alpha1.RegexMatcher{
 										Regex:  ".*/EchoPremium",
 										Engine: "re2",
 									},
@@ -484,40 +477,15 @@ func TestReconciller(t *testing.T) {
 						),
 						testruntime.BuildSingleRoute("v1"),
 					),
-					testruntime.WithClusters(
-						testruntime.BuildCluster(
-							"v2",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service-v2",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-						testruntime.BuildCluster(
-							"v1",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-					),
+					v1v2ClusterTopology,
 				),
 			},
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEchoPremium,
+					testruntime.BuildCaller(
+						testruntime.MethodEchoPremium,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
@@ -527,7 +495,9 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEcho,
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
@@ -539,7 +509,7 @@ func TestReconciller(t *testing.T) {
 			),
 		},
 		{
-			desc: "case insensitive matching",
+			desc: "case insensitive path matching",
 			endpoints: []corev1.Endpoints{
 				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
 				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
@@ -566,40 +536,15 @@ func TestReconciller(t *testing.T) {
 						),
 						testruntime.BuildSingleRoute("v1"),
 					),
-					testruntime.WithClusters(
-						testruntime.BuildCluster(
-							"v2",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service-v2",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-						testruntime.BuildCluster(
-							"v1",
-							testruntime.WithLocalities(
-								testruntime.BuildLocality(
-									testruntime.WithK8sService(
-										kxdsv1alpha1.K8sService{
-											Name: "test-service",
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-					),
+					v1v2ClusterTopology,
 				),
 			},
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEchoPremium,
+					testruntime.BuildCaller(
+						testruntime.MethodEchoPremium,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
@@ -609,11 +554,480 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.CallOnce(
 					"xds:///echo_server",
-					testruntime.MethodEcho,
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "header invert matching",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								testruntime.HeaderInvertMatch(
+									testruntime.HeaderExactMatch(
+										"x-variant",
+										"Awesome",
+									),
+								),
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								"x-variant": "Awesome",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.BackendCalledExact("backend-0", 1),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								"x-variant": "NotAwesome",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.BackendCalledExact("backend-1", 1),
+					),
+				),
+			),
+		},
+		{
+			desc: "header exact matching",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								testruntime.HeaderExactMatch(
+									"x-variant",
+									"Awesome",
+								),
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Gotha, metadata keys are lowercased.
+								"x-variant": "Awesome",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// One call for the second backend, because we're calling premium.
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "header safe regex match",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								kxdsv1alpha1.HeaderMatcher{
+									Name: "x-variant",
+									Regex: &kxdsv1alpha1.RegexMatcher{
+										Regex:  "Awe.*",
+										Engine: "re2",
+									},
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								"x-variant": "Awesome",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// One call for the second backend, because we're calling premium.
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "header range match",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								kxdsv1alpha1.HeaderMatcher{
+									Name: "x-variant",
+									Range: &kxdsv1alpha1.RangeMatcher{
+										Start: 10,
+										End:   20,
+									},
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// In range, call backend 1.
+								"x-variant": "12",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Out of bound, call backend-0.
+								"x-variant": "9",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "header present match",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								testruntime.HeaderPresentMatch(
+									"x-variant",
+									true,
+								),
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Header is present, send to v2.
+								"x-variant": "wooop",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(testruntime.MethodEcho),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "header prefix match",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								testruntime.HeaderPrefixMatch(
+									"x-variant",
+									"wo",
+								),
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Header has the prefix wo, send to v2.
+								"x-variant": "wooop",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Header has not the prefix wo, send to v1.
+								"x-variant": "not",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
+		{
+			desc: "header suffix match",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithHeaderMatchers(
+								testruntime.HeaderSuffixMatch(
+									"x-variant",
+									"oop",
+								),
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Header has the sufix oop, send to v2.
+								"x-variant": "wooop",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Header has not the suffix oop, send to v1.
+								"x-variant": "not",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
 						testruntime.BackendCalledExact("backend-0", 1),
 						testruntime.BackendCalledExact("backend-1", 0),
 					),

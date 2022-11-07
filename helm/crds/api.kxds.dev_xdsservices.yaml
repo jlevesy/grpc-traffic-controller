@@ -117,6 +117,57 @@ spec:
                             type: integer
                         type: object
                       type: array
+                    headers:
+                      description: Headers allows to match on a specific set of headers.
+                      items:
+                        description: HeaderMatcher indicates a match based on an http
+                          header.
+                        properties:
+                          exact:
+                            description: Match the exact value of a header.
+                            type: string
+                          invert:
+                            description: Invert that header match.
+                            type: boolean
+                          name:
+                            description: Name of the header to match.
+                            type: string
+                          prefix:
+                            description: Header value must have a prefix.
+                            type: string
+                          present:
+                            description: Header must be present.
+                            type: boolean
+                          range:
+                            description: Header Value must match a range.
+                            properties:
+                              end:
+                                description: End of the range (exclusive)
+                                format: int64
+                                type: integer
+                              start:
+                                description: Start of the range (inclusive)
+                                format: int64
+                                type: integer
+                            type: object
+                          regex:
+                            description: Match a regex. Must match the whole value.
+                            properties:
+                              engine:
+                                default: re2
+                                description: The regexp engine to use.
+                                enum:
+                                - re2
+                                type: string
+                              regex:
+                                description: Regexp to evaluate the path against.
+                                type: string
+                            type: object
+                          suffix:
+                            description: Header value must have a suffix.
+                            type: string
+                        type: object
+                      type: array
                     path:
                       description: Path allows to specfies path matcher for a specific
                         route.

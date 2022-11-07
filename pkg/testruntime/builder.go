@@ -61,7 +61,46 @@ func BuildCluster(name string, opts ...ClusterOption) kxdsv1alpha1.Cluster {
 	return c
 }
 
+func HeaderInvertMatch(in kxdsv1alpha1.HeaderMatcher) kxdsv1alpha1.HeaderMatcher {
+	in.Invert = true
+	return in
+}
+
+func HeaderExactMatch(name, value string) kxdsv1alpha1.HeaderMatcher {
+	return kxdsv1alpha1.HeaderMatcher{
+		Name:  name,
+		Exact: &value,
+	}
+}
+
+func HeaderPresentMatch(name string, present bool) kxdsv1alpha1.HeaderMatcher {
+	return kxdsv1alpha1.HeaderMatcher{
+		Name:    name,
+		Present: &present,
+	}
+}
+
+func HeaderPrefixMatch(name, prefix string) kxdsv1alpha1.HeaderMatcher {
+	return kxdsv1alpha1.HeaderMatcher{
+		Name:   name,
+		Prefix: &prefix,
+	}
+}
+
+func HeaderSuffixMatch(name, suffix string) kxdsv1alpha1.HeaderMatcher {
+	return kxdsv1alpha1.HeaderMatcher{
+		Name:   name,
+		Suffix: &suffix,
+	}
+}
+
 type RouteOption func(r *kxdsv1alpha1.Route)
+
+func WithHeaderMatchers(matchers ...kxdsv1alpha1.HeaderMatcher) RouteOption {
+	return func(r *kxdsv1alpha1.Route) {
+		r.Headers = matchers
+	}
+}
 
 func WithClusterRefs(refs ...kxdsv1alpha1.ClusterRef) RouteOption {
 	return func(r *kxdsv1alpha1.Route) {
@@ -77,7 +116,7 @@ func WithPathMatcher(pm kxdsv1alpha1.PathMatcher) RouteOption {
 
 func WithCaseSensitive(v bool) RouteOption {
 	return func(r *kxdsv1alpha1.Route) {
-		p.CaseSensitive = v
+		r.CaseSensitive = v
 	}
 }
 
