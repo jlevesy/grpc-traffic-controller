@@ -75,7 +75,7 @@ type ClusterRef struct {
 	Weight uint32 `json:"weight,omitempty"`
 }
 
-type RegexPathMatcher struct {
+type RegexMatcher struct {
 	// Regexp to evaluate the path against.
 	Regex string `json:"regex,omitempty"`
 	// The regexp engine to use.

@@ -469,7 +469,7 @@ func TestReconciller(t *testing.T) {
 							testruntime.WithPathMatcher(
 								kxdsv1alpha1.PathMatcher{
 									Prefix: "/echo.Echo/EchoP",
-									Regex: kxdsv1alpha1.RegexPathMatcher{
+									Regex: kxdsv1alpha1.RegexMatcher{
 										Regex:  ".*/EchoPremium",
 										Engine: "re2",
 									},
