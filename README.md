@@ -25,8 +25,11 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | TODO |
 | [A29](https://github.com/grpc/proposal/blob/master/A29-xds-tls-security.md)  | TODO |
 | [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO |
+| [A36](https://github.com/grpc/proposal/blob/master/A36-xds-for-servers.md)  | TODO |
+| [A39](https://github.com/grpc/proposal/blob/master/A39-xds-http-filters.md)  | TODO |
 
-LRS server side is left out of scope at the moment, though it could be an interesting thing to elaborate (expose load metrics?) I am unsure of what to do with for now.
+- I indend to suport xDS enabled gRPC servers, yet it might require a slight API change, or even a new CRD. More thinking is needed here.
+- LRS server side is left out of scope at the moment, though it could be an interesting thing to elaborate (expose load metrics?) I am unsure of what to do with for now.
 
 ## Getting Started
 
