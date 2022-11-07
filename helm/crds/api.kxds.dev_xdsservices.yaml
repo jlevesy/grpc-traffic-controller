@@ -97,6 +97,10 @@ spec:
                     cluster, it allows to do HTTP level manipulation on the outgoing
                     requests as well as matching.
                   properties:
+                    caseSensitive:
+                      default: true
+                      description: Indicates if the matching should be case sensitive.
+                      type: boolean
                     clusters:
                       description: Cluster carries the reference to a cluster name.
                       items:

@@ -84,7 +84,7 @@ type RegexMatcher struct {
 	Engine string `json:"engine,omitempty"`
 }
 
-// PathMatcher inditactes a match based on the path of a gRPC call.
+// PathMatcher indicates a match based on the path of a gRPC call.
 type PathMatcher struct {
 	// Path Must match the prefix of the request.
 	// +optional
@@ -95,7 +95,7 @@ type PathMatcher struct {
 	Path string `json:"path,omitempty"`
 	// Path Must Match a Regex.
 	// +optional
-	Regex RegexPathMatcher `json:"regex,omitempty"`
+	Regex RegexMatcher `json:"regex,omitempty"`
 }
 
 // Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
@@ -104,6 +104,9 @@ type Route struct {
 	Path PathMatcher `json:"path,omitempty"`
 	// Cluster carries the reference to a cluster name.
 	Clusters []ClusterRef `json:"clusters,omitempty"`
+	// Indicates if the prefix/path matching should be case sensitive.
+	// +kubebuilder:default:=true
+	CaseSensitive bool `json:"caseSensitive,omitempty"`
 }
 
 // XDSServiceSpec defines the desired state of Service

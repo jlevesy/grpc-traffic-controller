@@ -161,6 +161,8 @@ func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
 		}
 	}
 
+	match.CaseSensitive = wrapperspb.Bool(spec.CaseSensitive)
+
 	return &match, nil
 }
 

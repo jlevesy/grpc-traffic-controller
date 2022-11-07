@@ -538,6 +538,88 @@ func TestReconciller(t *testing.T) {
 				),
 			),
 		},
+		{
+			desc: "case insensitive matching",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							testruntime.WithCaseSensitive(false),
+							testruntime.WithPathMatcher(
+								kxdsv1alpha1.PathMatcher{
+									Prefix: "/echo.echo/echop",
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"v2",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service-v2",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+						testruntime.BuildCluster(
+							"v1",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			doAssert: testruntime.MultiAssert(
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEchoPremium,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// One call for the second backend, because we're calling premium.
+						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.BackendCalledExact("backend-0", 0),
+					),
+				),
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.MethodEcho,
+					testruntime.NoCallErrors,
+					testruntime.AggregateByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.BackendCalledExact("backend-1", 0),
+					),
+				),
+			),
+		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
 			var (

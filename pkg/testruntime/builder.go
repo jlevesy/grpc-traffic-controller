@@ -75,6 +75,12 @@ func WithPathMatcher(pm kxdsv1alpha1.PathMatcher) RouteOption {
 	}
 }
 
+func WithCaseSensitive(v bool) RouteOption {
+	return func(r *kxdsv1alpha1.Route) {
+		p.CaseSensitive = v
+	}
+}
+
 func BuildRoute(opts ...RouteOption) kxdsv1alpha1.Route {
 	r := kxdsv1alpha1.Route{
 		Path: kxdsv1alpha1.PathMatcher{
