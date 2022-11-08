@@ -97,6 +97,10 @@ spec:
                     cluster, it allows to do HTTP level manipulation on the outgoing
                     requests as well as matching.
                   properties:
+                    caseSensitive:
+                      default: true
+                      description: Indicates if the matching should be case sensitive.
+                      type: boolean
                     clusters:
                       description: Cluster carries the reference to a cluster name.
                       items:
@@ -111,6 +115,57 @@ spec:
                             description: Weight is the weight of this cluster.
                             format: int32
                             type: integer
+                        type: object
+                      type: array
+                    headers:
+                      description: Headers allows to match on a specific set of headers.
+                      items:
+                        description: HeaderMatcher indicates a match based on an http
+                          header.
+                        properties:
+                          exact:
+                            description: Match the exact value of a header.
+                            type: string
+                          invert:
+                            description: Invert that header match.
+                            type: boolean
+                          name:
+                            description: Name of the header to match.
+                            type: string
+                          prefix:
+                            description: Header value must have a prefix.
+                            type: string
+                          present:
+                            description: Header must be present.
+                            type: boolean
+                          range:
+                            description: Header Value must match a range.
+                            properties:
+                              end:
+                                description: End of the range (exclusive)
+                                format: int64
+                                type: integer
+                              start:
+                                description: Start of the range (inclusive)
+                                format: int64
+                                type: integer
+                            type: object
+                          regex:
+                            description: Match a regex. Must match the whole value.
+                            properties:
+                              engine:
+                                default: re2
+                                description: The regexp engine to use.
+                                enum:
+                                - re2
+                                type: string
+                              regex:
+                                description: Regexp to evaluate the path against.
+                                type: string
+                            type: object
+                          suffix:
+                            description: Header value must have a suffix.
+                            type: string
                         type: object
                       type: array
                     path:

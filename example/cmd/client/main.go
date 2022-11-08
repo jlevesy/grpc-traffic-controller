@@ -3,19 +3,49 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	_ "google.golang.org/grpc/xds"
 
 	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
 )
 
+type metadataArgs map[string]string
+
+func (h metadataArgs) String() string {
+	var sb strings.Builder
+
+	for k, v := range h {
+		sb.WriteString(k)
+		sb.WriteRune('=')
+		sb.WriteString(v)
+	}
+
+	return sb.String()
+}
+
+func (h metadataArgs) Set(v string) error {
+	sp := strings.Split(v, "=")
+	if len(sp) != 2 {
+		return fmt.Errorf("malformed argument %q", v)
+	}
+
+	h[sp[0]] = sp[1]
+
+	return nil
+}
+
 func main() {
 	var (
-		ctx     = context.Background()
+		ctx  = context.Background()
+		meta = make(metadataArgs)
+
 		addr    string
 		period  time.Duration
 		premium bool
@@ -24,6 +54,7 @@ func main() {
 	flag.StringVar(&addr, "addr", "localhost:3333", "the address to connect to")
 	flag.DurationVar(&period, "period", 0*time.Second, "period to make calls")
 	flag.BoolVar(&premium, "premium", false, "call premium")
+	flag.Var(&meta, "metadata", "add metadata to the call")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -46,6 +77,11 @@ func main() {
 		callPolicy = repeated(period)
 	}
 
+	callCtx := metadata.NewOutgoingContext(
+		ctx,
+		metadata.New(meta),
+	)
+
 	callPolicy(func() {
 		log.Println("Calling echo server")
 
@@ -55,9 +91,9 @@ func main() {
 		)
 
 		if premium {
-			resp, err = client.EchoPremium(ctx, &echo.EchoRequest{Payload: flag.Arg(0)})
+			resp, err = client.EchoPremium(callCtx, &echo.EchoRequest{Payload: flag.Arg(0)})
 		} else {
-			resp, err = client.Echo(ctx, &echo.EchoRequest{Payload: flag.Arg(0)})
+			resp, err = client.Echo(callCtx, &echo.EchoRequest{Payload: flag.Arg(0)})
 		}
 		if err != nil {
 			log.Println("unable to send echo request", err)

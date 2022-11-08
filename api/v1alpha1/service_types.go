@@ -75,7 +75,7 @@ type ClusterRef struct {
 	Weight uint32 `json:"weight,omitempty"`
 }
 
-type RegexPathMatcher struct {
+type RegexMatcher struct {
 	// Regexp to evaluate the path against.
 	Regex string `json:"regex,omitempty"`
 	// The regexp engine to use.
@@ -84,7 +84,14 @@ type RegexPathMatcher struct {
 	Engine string `json:"engine,omitempty"`
 }
 
-// PathMatcher inditactes a match based on the path of a gRPC call.
+type RangeMatcher struct {
+	// Start of the range (inclusive)
+	Start int64 `json:"start,omitempty"`
+	// End of the range (exclusive)
+	End int64 `json:"end,omitempty"`
+}
+
+// PathMatcher indicates a match based on the path of a gRPC call.
 type PathMatcher struct {
 	// Path Must match the prefix of the request.
 	// +optional
@@ -95,13 +102,38 @@ type PathMatcher struct {
 	Path string `json:"path,omitempty"`
 	// Path Must Match a Regex.
 	// +optional
-	Regex RegexPathMatcher `json:"regex,omitempty"`
+	Regex *RegexMatcher `json:"regex,omitempty"`
+}
+
+// HeaderMatcher indicates a match based on an http header.
+type HeaderMatcher struct {
+	// Name of the header to match.
+	Name string `json:"name,omitempty"`
+	// Match the exact value of a header.
+	Exact *string `json:"exact,omitempty"`
+	// Match a regex. Must match the whole value.
+	Regex *RegexMatcher `json:"regex,omitempty"`
+	// Header Value must match a range.
+	Range *RangeMatcher `json:"range,omitempty"`
+	// Header must be present.
+	Present *bool `json:"present,omitempty"`
+	// Header value must have a prefix.
+	Prefix *string `json:"prefix,omitempty"`
+	// Header value must have a suffix.
+	Suffix *string `json:"suffix,omitempty"`
+	// Invert that header match.
+	Invert bool `json:"invert,omitempty"`
 }
 
 // Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
 type Route struct {
 	// Path allows to specfies path matcher for a specific route.
 	Path PathMatcher `json:"path,omitempty"`
+	// Headers allows to match on a specific set of headers.
+	Headers []HeaderMatcher `json:"headers,omitempty"`
+	// Indicates if the matching should be case sensitive.
+	// +kubebuilder:default:=true
+	CaseSensitive bool `json:"caseSensitive,omitempty"`
 	// Cluster carries the reference to a cluster name.
 	Clusters []ClusterRef `json:"clusters,omitempty"`
 }

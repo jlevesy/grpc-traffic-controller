@@ -12,6 +12,7 @@ import (
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -137,18 +138,14 @@ func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
 	var match route.RouteMatch
 
 	switch {
-	case spec.Path.Regex.Regex != "":
-		if spec.Path.Regex.Engine != "re2" {
-			return nil, fmt.Errorf("unsupported engine %q", spec.Path.Regex.Engine)
+	case spec.Path.Regex != nil:
+		regexMatcher, err := makeRegexMatcher(spec.Path.Regex)
+		if err != nil {
+			return nil, err
 		}
 
 		match.PathSpecifier = &route.RouteMatch_SafeRegex{
-			SafeRegex: &matcher.RegexMatcher{
-				Regex: spec.Path.Regex.Regex,
-				EngineType: &matcher.RegexMatcher_GoogleRe2{
-					GoogleRe2: &matcher.RegexMatcher_GoogleRE2{},
-				},
-			},
+			SafeRegex: regexMatcher,
 		}
 
 	case spec.Path.Path != "":
@@ -161,7 +158,83 @@ func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
 		}
 	}
 
+	match.CaseSensitive = wrapperspb.Bool(spec.CaseSensitive)
+	match.Headers = make([]*route.HeaderMatcher, len(spec.Headers))
+
+	for i, headerMatcherSpec := range spec.Headers {
+		var err error
+
+		match.Headers[i], err = makeHeaderMatcher(headerMatcherSpec)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &match, nil
+}
+
+func makeHeaderMatcher(spec kxdsv1alpha1.HeaderMatcher) (*route.HeaderMatcher, error) {
+	matcher := route.HeaderMatcher{
+		Name:        spec.Name,
+		InvertMatch: spec.Invert,
+	}
+
+	switch {
+	case spec.Exact != nil:
+		matcher.HeaderMatchSpecifier = &route.HeaderMatcher_ExactMatch{
+			ExactMatch: *spec.Exact,
+		}
+	case spec.Regex != nil:
+		regexMatcher, err := makeRegexMatcher(spec.Regex)
+		if err != nil {
+			return nil, err
+		}
+
+		matcher.HeaderMatchSpecifier = &route.HeaderMatcher_SafeRegexMatch{
+			SafeRegexMatch: regexMatcher,
+		}
+	case spec.Range != nil:
+		matcher.HeaderMatchSpecifier = &route.HeaderMatcher_RangeMatch{
+			RangeMatch: &typev3.Int64Range{
+				Start: spec.Range.Start,
+				End:   spec.Range.End,
+			},
+		}
+	case spec.Present != nil:
+		matcher.HeaderMatchSpecifier = &route.HeaderMatcher_PresentMatch{
+			PresentMatch: *spec.Present,
+		}
+	case spec.Prefix != nil:
+		matcher.HeaderMatchSpecifier = &route.HeaderMatcher_PrefixMatch{
+			PrefixMatch: *spec.Prefix,
+		}
+	case spec.Suffix != nil:
+		matcher.HeaderMatchSpecifier = &route.HeaderMatcher_SuffixMatch{
+			SuffixMatch: *spec.Suffix,
+		}
+	default:
+		return nil, errors.New("invalid header matcher")
+
+	}
+
+	return &matcher, nil
+}
+
+func makeRegexMatcher(spec *kxdsv1alpha1.RegexMatcher) (*matcher.RegexMatcher, error) {
+	if spec.Engine != "re2" {
+		return nil, fmt.Errorf("unsupported engine %q", spec.Engine)
+	}
+
+	if spec.Regex == "" {
+		return nil, errors.New("blank regex")
+	}
+
+	return &matcher.RegexMatcher{
+		Regex: spec.Regex,
+		EngineType: &matcher.RegexMatcher_GoogleRe2{
+			GoogleRe2: &matcher.RegexMatcher_GoogleRE2{},
+		},
+	}, nil
 }
 
 func makeWeightedClusters(resourcePrefix string, routeSpec kxdsv1alpha1.Route) *route.WeightedCluster {
