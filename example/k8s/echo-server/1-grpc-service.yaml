@@ -165,3 +165,33 @@ spec:
             name: echo-server-v1
             port:
               name: grpc
+---
+# Header based routing: Route calls v2 if header "x-version" has the value "v2"
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: header-exact-matcher
+  namespace: echo-server
+spec:
+  listener: echo-server-header-exact
+  routes:
+    - headers:
+        - name: "x-version"
+          exact: "v2"
+      clusters:
+        - name: v2
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v2
+      localities:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - name: v1
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
