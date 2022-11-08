@@ -16,16 +16,15 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | ------------- | ------------- |
 | [A27](https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md) | Supported (except LRS) | N/A (initial implementation) |
 | [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | Supported |
-| [A30](https://github.com/grpc/proposal/blob/master/A30-xds-v3.md)  | TODO  |
-| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO |
+| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO: MaxStreamDuration on routes and general. |
 | [A32](https://github.com/grpc/proposal/blob/master/A32-xds-circuit-breaking.md)  | TODO |
 | [A33](https://github.com/grpc/proposal/blob/master/A33-Fault-Injection.md)  | TODO |
-| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO |
 | [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO |
 | [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | TODO |
 | [A29](https://github.com/grpc/proposal/blob/master/A29-xds-tls-security.md)  | TODO |
 | [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO |
 | [A36](https://github.com/grpc/proposal/blob/master/A36-xds-for-servers.md)  | TODO |
+| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO, Not directly related but it highlight the need of supporting CSDS on KxDS's end? |
 | [A39](https://github.com/grpc/proposal/blob/master/A39-xds-http-filters.md)  | TODO |
 
 - I indend to suport xDS enabled gRPC servers, yet it might require a slight API change, or even a new CRD. More thinking is needed here.

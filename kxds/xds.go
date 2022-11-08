@@ -74,6 +74,7 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 
 func makeListener(listenerName string, routeConfigName string) *listener.Listener {
 	httpConnManager := &hcm.HttpConnectionManager{
+		// TODO(A31): CommonHttpProtocolOptions.MaxStreamDuratin.
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
 				RouteConfigName: routeConfigName,
@@ -114,6 +115,8 @@ func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, route
 			Match: match,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
+					// TODO(A31): MaxStreamDuration
+					// TODO(A31): GrpcTimeoutHeaderMax
 					ClusterSpecifier: &route.RouteAction_WeightedClusters{
 						WeightedClusters: makeWeightedClusters(resourcePrefix, routeSpec),
 					},
