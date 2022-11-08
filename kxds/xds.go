@@ -3,6 +3,7 @@ package kxds
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -160,6 +161,23 @@ func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
 
 	match.CaseSensitive = wrapperspb.Bool(spec.CaseSensitive)
 	match.Headers = make([]*route.HeaderMatcher, len(spec.Headers))
+
+	if spec.RuntimeFraction != nil {
+		denominator, ok := typev3.FractionalPercent_DenominatorType_value[strings.ToUpper(spec.RuntimeFraction.Denominator)]
+		if !ok {
+			return nil, fmt.Errorf(
+				"unsupported denominator %q for runtime fraction",
+				spec.RuntimeFraction.Denominator,
+			)
+		}
+
+		match.RuntimeFraction = &core.RuntimeFractionalPercent{
+			DefaultValue: &typev3.FractionalPercent{
+				Numerator:   spec.RuntimeFraction.Numerator,
+				Denominator: typev3.FractionalPercent_DenominatorType(denominator),
+			},
+		}
+	}
 
 	for i, headerMatcherSpec := range spec.Headers {
 		var err error

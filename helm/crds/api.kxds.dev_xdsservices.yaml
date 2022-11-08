@@ -117,6 +117,22 @@ spec:
                             type: integer
                         type: object
                       type: array
+                    fraction:
+                      description: Only handle a fraction of matching requests.
+                      properties:
+                        denominator:
+                          default: hundred
+                          description: Denominator of the fration.
+                          enum:
+                          - hundred
+                          - ten_thousand
+                          - million
+                          type: string
+                        numerator:
+                          description: Numerator of the fraction
+                          format: int32
+                          type: integer
+                      type: object
                     headers:
                       description: Headers allows to match on a specific set of headers.
                       items:

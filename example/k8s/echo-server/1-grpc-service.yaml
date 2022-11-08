@@ -195,3 +195,32 @@ spec:
             name: echo-server-v1
             port:
               name: grpc
+---
+# Fractional traffic splitting: 20% of calls go v2 the other 80% hit v1
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: fractional-route-matcher
+  namespace: echo-server
+spec:
+  listener: echo-server-fraction-route
+  routes:
+    - fraction:
+        numerator: 20
+      clusters:
+        - name: v2
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v2
+      localities:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - name: v1
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc

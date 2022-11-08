@@ -102,6 +102,12 @@ func WithHeaderMatchers(matchers ...kxdsv1alpha1.HeaderMatcher) RouteOption {
 	}
 }
 
+func WithRuntimeFraction(fr kxdsv1alpha1.Fraction) RouteOption {
+	return func(r *kxdsv1alpha1.Route) {
+		r.RuntimeFraction = &fr
+	}
+}
+
 func WithClusterRefs(refs ...kxdsv1alpha1.ClusterRef) RouteOption {
 	return func(r *kxdsv1alpha1.Route) {
 		r.Clusters = refs

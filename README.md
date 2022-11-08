@@ -15,7 +15,7 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | gRFC  | Status |
 | ------------- | ------------- |
 | [A27](https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md) | Supported (except LRS) | N/A (initial implementation) |
-| [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | Partially Supported (Path only) |
+| [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | Supported |
 | [A30](https://github.com/grpc/proposal/blob/master/A30-xds-v3.md)  | TODO  |
 | [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO |
 | [A32](https://github.com/grpc/proposal/blob/master/A32-xds-circuit-breaking.md)  | TODO |
