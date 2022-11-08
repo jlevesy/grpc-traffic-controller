@@ -125,6 +125,15 @@ type HeaderMatcher struct {
 	Invert bool `json:"invert,omitempty"`
 }
 
+type Fraction struct {
+	// Numerator of the fraction
+	Numerator uint32 `json:"numerator,omitempty"`
+	// Denominator of the fration.
+	// +kubebuilder:validation:Enum:=hundred;ten_thousand;million
+	// +kubebuilder:default:=hundred
+	Denominator string `json:"denominator,omitempty"`
+}
+
 // Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
 type Route struct {
 	// Path allows to specfies path matcher for a specific route.
@@ -134,6 +143,8 @@ type Route struct {
 	// Indicates if the matching should be case sensitive.
 	// +kubebuilder:default:=true
 	CaseSensitive bool `json:"caseSensitive,omitempty"`
+	// Only handle a fraction of matching requests.
+	RuntimeFraction *Fraction `json:"fraction,omitempty"`
 	// Cluster carries the reference to a cluster name.
 	Clusters []ClusterRef `json:"clusters,omitempty"`
 }

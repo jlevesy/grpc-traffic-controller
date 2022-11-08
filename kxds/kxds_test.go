@@ -1034,6 +1034,51 @@ func TestReconciller(t *testing.T) {
 				),
 			),
 		},
+		{
+			desc: "runtime fraction traffic splitting",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+				testruntime.BuildEndpoints("test-service-v2", "default", backends[1:2]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildRoute(
+							// 20.00% of the traffic will go to v2.
+							testruntime.WithRuntimeFraction(
+								kxdsv1alpha1.Fraction{
+									Numerator:   20,
+									Denominator: "hundred",
+								},
+							),
+							testruntime.WithClusterRefs(
+								kxdsv1alpha1.ClusterRef{
+									Name:   "v2",
+									Weight: 1,
+								},
+							),
+						),
+						testruntime.BuildSingleRoute("v1"),
+					),
+					v1v2ClusterTopology,
+				),
+			},
+			doAssert: testruntime.CallN(
+				"xds:///echo_server",
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
+				10000,
+				testruntime.NoCallErrors,
+				testruntime.AggregateByBackendID(
+					testruntime.BackendCalledDelta("backend-1", 2000, 500.0),
+					testruntime.BackendCalledDelta("backend-0", 8000, 500.0),
+				),
+			),
+		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
 			var (
