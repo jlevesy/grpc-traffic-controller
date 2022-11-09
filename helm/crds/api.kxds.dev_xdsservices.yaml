@@ -90,6 +90,12 @@ spec:
                 description: Listener is the listener name that is used to identitfy
                   a specific service from an xDS perspective.
                 type: string
+              maxStreamDuration:
+                description: MaxStreamDuration is the total duration to keep alive
+                  an HTTP request/response stream. If the time limit is reached the
+                  stream will be reset independent of any other timeouts. If not specified,
+                  this value is not set.
+                type: string
               routes:
                 description: Routes lists all the routes defined for an XDSService.
                 items:
@@ -133,6 +139,14 @@ spec:
                           format: int32
                           type: integer
                       type: object
+                    grpcTimeoutHeaderMax:
+                      description: Specifies the maximum duration allowed for streams
+                        on the route. If present, and the request contains a `grpc-timeout
+                        header <https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md>`_,
+                        use that value as the *max_stream_duration*, but limit the
+                        applied timeout to the maximum value specified here. If set
+                        to 0, the `grpc-timeout` header is used without modification.
+                      type: string
                     headers:
                       description: Headers allows to match on a specific set of headers.
                       items:
@@ -184,6 +198,10 @@ spec:
                             type: string
                         type: object
                       type: array
+                    maxStreamDuration:
+                      description: Specifies the maximum duration allowed for streams
+                        on the route.
+                      type: string
                     path:
                       description: Path allows to specfies path matcher for a specific
                         route.
