@@ -18,8 +18,10 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	corev1 "k8s.io/api/core/v1"
+	kcorev1 "k8s.io/api/core/v1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 
 	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
@@ -32,7 +34,7 @@ type xdsService struct {
 	loadAssignments []types.Resource
 }
 
-func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.NamespacedName]corev1.Endpoints) (xdsService, error) {
+func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.NamespacedName]kcorev1.Endpoints) (xdsService, error) {
 	var (
 		err error
 
@@ -41,7 +43,7 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 		routeConfigName = resourcePrefix + "routeconfig"
 
 		xdsSvc = xdsService{
-			listener: makeListener(listenerName, routeConfigName),
+			listener: makeListener(svc, routeConfigName),
 			clusters: make([]types.Resource, len(svc.Spec.Clusters)),
 		}
 	)
@@ -72,9 +74,11 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 	return xdsSvc, nil
 }
 
-func makeListener(listenerName string, routeConfigName string) *listener.Listener {
+func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) *listener.Listener {
 	httpConnManager := &hcm.HttpConnectionManager{
-		// TODO(A31): CommonHttpProtocolOptions.MaxStreamDuratin.
+		CommonHttpProtocolOptions: &core.HttpProtocolOptions{
+			MaxStreamDuration: makeDuration(svc.Spec.MaxStreamDuration),
+		},
 		RouteSpecifier: &hcm.HttpConnectionManager_Rds{
 			Rds: &hcm.Rds{
 				RouteConfigName: routeConfigName,
@@ -95,11 +99,19 @@ func makeListener(listenerName string, routeConfigName string) *listener.Listene
 	}
 
 	return &listener.Listener{
-		Name: listenerName,
+		Name: svc.Spec.Listener,
 		ApiListener: &listener.ApiListener{
 			ApiListener: mustAny(httpConnManager),
 		},
 	}
+}
+
+func makeDuration(duration *kmetav1.Duration) *durationpb.Duration {
+	if duration == nil {
+		return nil
+	}
+
+	return durationpb.New(duration.Duration)
 }
 
 func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, routeSpecs []kxdsv1alpha1.Route) (*route.RouteConfiguration, error) {
@@ -115,8 +127,10 @@ func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, route
 			Match: match,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
-					// TODO(A31): MaxStreamDuration
-					// TODO(A31): GrpcTimeoutHeaderMax
+					MaxStreamDuration: &route.RouteAction_MaxStreamDuration{
+						MaxStreamDuration:    makeDuration(routeSpec.MaxStreamDuration),
+						GrpcTimeoutHeaderMax: makeDuration(routeSpec.GrpcTimeoutHeaderMax),
+					},
 					ClusterSpecifier: &route.RouteAction_WeightedClusters{
 						WeightedClusters: makeWeightedClusters(resourcePrefix, routeSpec),
 					},
@@ -294,7 +308,7 @@ func makeCluster(clusterName string) *cluster.Cluster {
 	}
 }
 
-func makeLoadAssignment(clusterName, currentNamespace string, localities []kxdsv1alpha1.Locality, k8sEndpoints map[ktypes.NamespacedName]corev1.Endpoints) (*endpoint.ClusterLoadAssignment, error) {
+func makeLoadAssignment(clusterName, currentNamespace string, localities []kxdsv1alpha1.Locality, k8sEndpoints map[ktypes.NamespacedName]kcorev1.Endpoints) (*endpoint.ClusterLoadAssignment, error) {
 	xdsLocalities := make([]*endpoint.LocalityLbEndpoints, len(localities))
 
 	for i, locSpec := range localities {
@@ -328,7 +342,7 @@ func makeLoadAssignment(clusterName, currentNamespace string, localities []kxdsv
 	}, nil
 }
 
-func makeK8sLocality(locSpec kxdsv1alpha1.Locality, k8sEndpoint corev1.Endpoints) (*endpoint.LocalityLbEndpoints, error) {
+func makeK8sLocality(locSpec kxdsv1alpha1.Locality, k8sEndpoint kcorev1.Endpoints) (*endpoint.LocalityLbEndpoints, error) {
 	var xdsEndpoints []*endpoint.LbEndpoint
 
 	for _, ep := range k8sEndpoint.Subsets {
@@ -352,7 +366,7 @@ func makeK8sLocality(locSpec kxdsv1alpha1.Locality, k8sEndpoint corev1.Endpoints
 
 }
 
-func makeEndpointsFromSubset(ep corev1.EndpointSubset, port uint32) []*endpoint.LbEndpoint {
+func makeEndpointsFromSubset(ep kcorev1.EndpointSubset, port uint32) []*endpoint.LbEndpoint {
 	eps := make([]*endpoint.LbEndpoint, len(ep.Addresses))
 
 	for i, ep := range ep.Addresses {
@@ -379,7 +393,7 @@ func makeEndpointsFromSubset(ep corev1.EndpointSubset, port uint32) []*endpoint.
 	return eps
 }
 
-func lookupK8sPort(k8sSvc kxdsv1alpha1.K8sPort, eps corev1.EndpointSubset) (uint32, bool) {
+func lookupK8sPort(k8sSvc kxdsv1alpha1.K8sPort, eps kcorev1.EndpointSubset) (uint32, bool) {
 	if k8sSvc.Name != "" {
 		for _, p := range eps.Ports {
 			if p.Name == k8sSvc.Name {

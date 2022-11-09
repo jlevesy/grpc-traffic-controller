@@ -145,6 +145,14 @@ type Route struct {
 	CaseSensitive bool `json:"caseSensitive,omitempty"`
 	// Only handle a fraction of matching requests.
 	RuntimeFraction *Fraction `json:"fraction,omitempty"`
+	// Specifies the maximum duration allowed for streams on the route.
+	MaxStreamDuration *metav1.Duration `json:"maxStreamDuration,omitempty"`
+	// Specifies the maximum duration allowed for streams on the route.
+	// If present, and the request contains a `grpc-timeout header
+	// <https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md>`_, use that value as the
+	// *max_stream_duration*, but limit the applied timeout to the maximum value specified here.
+	// If set to 0, the `grpc-timeout` header is used without modification.
+	GrpcTimeoutHeaderMax *metav1.Duration `json:"grpcTimeoutHeaderMax,omitempty"`
 	// Cluster carries the reference to a cluster name.
 	Clusters []ClusterRef `json:"clusters,omitempty"`
 }
@@ -154,6 +162,10 @@ type XDSServiceSpec struct {
 	// Listener is the listener name that is used to identitfy a specific service from an xDS perspective.
 	// +kubebuilder:validation:Required
 	Listener string `json:"listener,omitempty"`
+	// MaxStreamDuration is the total duration to keep alive an HTTP request/response stream.
+	// If the time limit is reached the stream will be reset independent of any other timeouts.
+	// If not specified, this value is not set.
+	MaxStreamDuration *metav1.Duration `json:"maxStreamDuration,omitempty"`
 	// Routes lists all the routes defined for an XDSService.
 	// +kubebuilder:validation:MinItems:=1
 	Routes []Route `json:"routes,omitempty"`

@@ -16,7 +16,7 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | ------------- | ------------- |
 | [A27](https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md) | Supported (except LRS) | N/A (initial implementation) |
 | [A28](https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md)  | Supported |
-| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | TODO: MaxStreamDuration on routes and general. |
+| [A31](https://github.com/grpc/proposal/blob/master/A31-xds-timeout-support-and-config-selector.md)  | Supported: MaxStreamDuration on routes and HTTPConnManager. |
 | [A32](https://github.com/grpc/proposal/blob/master/A32-xds-circuit-breaking.md)  | TODO |
 | [A33](https://github.com/grpc/proposal/blob/master/A33-Fault-Injection.md)  | TODO |
 | [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO |
