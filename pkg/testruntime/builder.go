@@ -3,6 +3,7 @@ package testruntime
 import (
 	"net"
 	"strconv"
+	"time"
 
 	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -102,6 +103,12 @@ func WithHeaderMatchers(matchers ...kxdsv1alpha1.HeaderMatcher) RouteOption {
 	}
 }
 
+func WithRouteMaxStreamDuration(d time.Duration) RouteOption {
+	return func(r *kxdsv1alpha1.Route) {
+		r.MaxStreamDuration = &metav1.Duration{Duration: d}
+	}
+}
+
 func WithRuntimeFraction(fr kxdsv1alpha1.Fraction) RouteOption {
 	return func(r *kxdsv1alpha1.Route) {
 		r.RuntimeFraction = &fr
@@ -162,6 +169,12 @@ func WithRoutes(rs ...kxdsv1alpha1.Route) XDSServiceOpt {
 func WithClusters(cs ...kxdsv1alpha1.Cluster) XDSServiceOpt {
 	return func(s *kxdsv1alpha1.XDSService) {
 		s.Spec.Clusters = cs
+	}
+}
+
+func WithMaxStreamDuration(d time.Duration) XDSServiceOpt {
+	return func(s *kxdsv1alpha1.XDSService) {
+		s.Spec.MaxStreamDuration = &metav1.Duration{Duration: d}
 	}
 }
 

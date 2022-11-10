@@ -3,6 +3,7 @@ package testruntime
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,6 +19,20 @@ func MultiAssert(asserts ...func(t *testing.T)) func(t *testing.T) {
 		for _, assert := range asserts {
 			assert(t)
 		}
+	}
+}
+
+func WithinDeadline(d time.Duration, assert func(t *testing.T)) func(t *testing.T) {
+	return func(t *testing.T) {
+		tt := time.NewTimer(d)
+		defer tt.Stop()
+
+		go func() {
+			<-tt.C
+			t.Error("Test did not succeed within deadline")
+		}()
+
+		assert(t)
 	}
 }
 
@@ -126,6 +141,12 @@ func CallN(addr string, caller Caller, count int, assertions ...CallsAssertion) 
 func NoCallErrors(t *testing.T, calls []call) {
 	for _, c := range calls {
 		require.NoError(t, c.err)
+	}
+}
+
+func MustFail(t *testing.T, calls []call) {
+	for _, c := range calls {
+		require.Error(t, c.err)
 	}
 }
 
