@@ -84,11 +84,11 @@ func TestReconciller(t *testing.T) {
 	}()
 
 	for _, testCase := range []struct {
-		desc        string
-		endpoints   []corev1.Endpoints
-		xdsServices []kxdsv1alpha1.XDSService
-
-		doAssert func(t *testing.T)
+		desc          string
+		endpoints     []corev1.Endpoints
+		xdsServices   []kxdsv1alpha1.XDSService
+		setupBackends func(t *testing.T, bs testruntime.Backends)
+		doAssert      func(t *testing.T)
 	}{
 		{
 			desc: "single call port by name",
@@ -120,6 +120,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
 				testruntime.BuildCaller(
@@ -163,6 +164,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
 				testruntime.BuildCaller(
@@ -205,6 +207,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
 				testruntime.BuildCaller(
@@ -257,6 +260,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.CallN(
 				"xds:///echo_server",
 				testruntime.BuildCaller(
@@ -316,6 +320,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.CallOnce(
 				"xds:///echo_server",
 				testruntime.BuildCaller(
@@ -360,6 +365,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -418,6 +424,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -480,6 +487,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -539,6 +547,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -600,6 +609,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -666,6 +676,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -734,6 +745,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -801,6 +813,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -869,6 +882,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -929,6 +943,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -997,6 +1012,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -1066,6 +1082,7 @@ func TestReconciller(t *testing.T) {
 					v1v2ClusterTopology,
 				),
 			},
+			setupBackends: answer,
 			doAssert: testruntime.CallN(
 				"xds:///echo_server",
 				testruntime.BuildCaller(
@@ -1096,6 +1113,8 @@ func TestReconciller(t *testing.T) {
 				)
 			)
 
+			testCase.setupBackends(t, backends)
+
 			// Flush snapshot state from previous iteration.
 			xdsCache.ClearSnapshot(kxds.DefautHashKey)
 
@@ -1108,4 +1127,8 @@ func TestReconciller(t *testing.T) {
 			testCase.doAssert(t)
 		})
 	}
+}
+
+func answer(t *testing.T, backends testruntime.Backends) {
+	backends.SetBehavior(testruntime.DefaultBehavior())
 }
