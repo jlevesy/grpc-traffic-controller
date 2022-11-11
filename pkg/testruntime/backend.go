@@ -3,6 +3,7 @@ package testruntime
 import (
 	"net"
 	"strconv"
+	"time"
 
 	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
 	"github.com/jlevesy/kxds/pkg/echoserver"
@@ -51,10 +52,47 @@ func (bs Backends) Stop() error {
 	return nil
 }
 
+func (bs Backends) SetBehavior(bh Behavior) {
+	for _, b := range bs {
+		b.SetBehavior(bh)
+	}
+}
+
+type Behavior func(string) echo.EchoServer
+
+func DefaultBehavior() Behavior {
+	return func(id string) echo.EchoServer {
+		return &echoserver.Server{
+			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "standard"}, nil
+			},
+			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "premium"}, nil
+			},
+		}
+	}
+}
+
+func HangBehavior(d time.Duration) Behavior {
+	return func(id string) echo.EchoServer {
+		return &echoserver.Server{
+			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				time.Sleep(d)
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "standard"}, nil
+			},
+			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				time.Sleep(d)
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "premium"}, nil
+			},
+		}
+	}
+}
+
 type Backend struct {
 	ID       string
 	Listener net.Listener
 	Server   *grpc.Server
+	Impl     *echoserver.SwapableServer
 }
 
 func newBackend(id string) (Backend, error) {
@@ -65,28 +103,25 @@ func newBackend(id string) (Backend, error) {
 		return Backend{}, err
 	}
 
-	echo.RegisterEchoServer(
-		srv,
-		&echoserver.Server{
-			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
-				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "standard"}, nil
-			},
-			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
-				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "premium"}, nil
-			},
-		},
-	)
+	b := Backend{
+		ID:       id,
+		Listener: listener,
+		Server:   srv,
+		Impl:     &echoserver.SwapableServer{},
+	}
+
+	echo.RegisterEchoServer(srv, b.Impl)
+
+	b.SetBehavior(DefaultBehavior())
 
 	go func() {
 		_ = srv.Serve(listener)
 	}()
 
-	return Backend{
-		ID:       id,
-		Listener: listener,
-		Server:   srv,
-	}, nil
+	return b, nil
 }
+
+func (b *Backend) SetBehavior(bh Behavior) { b.Impl.Swap(bh(b.ID)) }
 
 func (b *Backend) PortNumber() int32 {
 	_, p, err := net.SplitHostPort(b.Listener.Addr().String())
