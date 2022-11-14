@@ -80,6 +80,11 @@ spec:
                         type: object
                       minItems: 1
                       type: array
+                    maxRequests:
+                      description: MaxRequests qualifies the maximum number of parallel
+                        requests allowd to the upstream cluster.
+                      format: int32
+                      type: integer
                     name:
                       description: Name is the name of the Cluster
                       type: string

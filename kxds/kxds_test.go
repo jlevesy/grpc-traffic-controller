@@ -129,7 +129,7 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
-					testruntime.BackendCalledExact("backend-0", 1),
+					testruntime.AssertAggregatedValue("backend-0", 1),
 				),
 			),
 		},
@@ -173,7 +173,7 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
-					testruntime.BackendCalledExact("backend-0", 1),
+					testruntime.AssertAggregatedValue("backend-0", 1),
 				),
 			),
 		},
@@ -216,7 +216,7 @@ func TestReconciller(t *testing.T) {
 				),
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
-					testruntime.BackendCalledExact("backend-0", 1),
+					testruntime.AssertAggregatedValue("backend-0", 1),
 				),
 			),
 		},
@@ -271,11 +271,11 @@ func TestReconciller(t *testing.T) {
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					// 80% of calls
-					testruntime.BackendCalledDelta("backend-0", 4000, 500.0),
-					testruntime.BackendCalledDelta("backend-1", 4000, 500.0),
+					testruntime.AssertAggregatedValueWithinDelta("backend-0", 4000, 500.0),
+					testruntime.AssertAggregatedValueWithinDelta("backend-1", 4000, 500.0),
 					// 20% of calls
-					testruntime.BackendCalledDelta("backend-2", 1000, 500.0),
-					testruntime.BackendCalledDelta("backend-3", 1000, 500.0),
+					testruntime.AssertAggregatedValueWithinDelta("backend-2", 1000, 500.0),
+					testruntime.AssertAggregatedValueWithinDelta("backend-3", 1000, 500.0),
 				),
 			),
 		},
@@ -330,9 +330,9 @@ func TestReconciller(t *testing.T) {
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
 					// No calls for the first set of backends
-					testruntime.BackendCalledExact("backend-0", 0),
+					testruntime.AssertAggregatedValue("backend-0", 0),
 					// One call for the second backend.
-					testruntime.BackendCalledExact("backend-1", 1),
+					testruntime.AssertAggregatedValue("backend-1", 1),
 				),
 			),
 		},
@@ -376,8 +376,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -389,8 +389,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -435,8 +435,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -448,8 +448,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -498,8 +498,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -511,8 +511,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -558,8 +558,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -571,8 +571,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -624,8 +624,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-1", 0),
-						testruntime.BackendCalledExact("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
 					),
 				),
 				testruntime.CallOnce(
@@ -640,8 +640,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-0", 0),
-						testruntime.BackendCalledExact("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
 					),
 				),
 			),
@@ -693,8 +693,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -706,8 +706,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -761,8 +761,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
 						// One call for the second backend, because we're calling premium.
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -774,8 +774,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.AggregateByBackendID(
 						// No calls for the first set of backends
 						// First backend should get a call.
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -829,8 +829,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -846,8 +846,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -898,8 +898,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -907,8 +907,8 @@ func TestReconciller(t *testing.T) {
 					testruntime.BuildCaller(testruntime.MethodEcho),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -959,8 +959,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -976,8 +976,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -1028,8 +1028,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-1", 1),
-						testruntime.BackendCalledExact("backend-0", 0),
+						testruntime.AssertAggregatedValue("backend-1", 1),
+						testruntime.AssertAggregatedValue("backend-0", 0),
 					),
 				),
 				testruntime.CallOnce(
@@ -1045,8 +1045,8 @@ func TestReconciller(t *testing.T) {
 					),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
-						testruntime.BackendCalledExact("backend-0", 1),
-						testruntime.BackendCalledExact("backend-1", 0),
+						testruntime.AssertAggregatedValue("backend-0", 1),
+						testruntime.AssertAggregatedValue("backend-1", 0),
 					),
 				),
 			),
@@ -1092,8 +1092,8 @@ func TestReconciller(t *testing.T) {
 				10000,
 				testruntime.NoCallErrors,
 				testruntime.AggregateByBackendID(
-					testruntime.BackendCalledDelta("backend-1", 2000, 500.0),
-					testruntime.BackendCalledDelta("backend-0", 8000, 500.0),
+					testruntime.AssertAggregatedValueWithinDelta("backend-1", 2000, 500.0),
+					testruntime.AssertAggregatedValueWithinDelta("backend-0", 8000, 500.0),
 				),
 			),
 		},
@@ -1185,6 +1185,53 @@ func TestReconciller(t *testing.T) {
 						testruntime.MethodEcho,
 					),
 					testruntime.MustFail,
+				),
+			),
+		},
+		{
+			desc: "max requests on cluster",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildSingleRoute("default"),
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"default",
+							testruntime.WithMaxRequests(1),
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: hang(1 * time.Second),
+			doAssert: testruntime.CallNParallel(
+				"xds:///echo_server",
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
+				10,
+				testruntime.AggregateByError(
+					testruntime.AssertAggregatedValue("ok", 1),
+					testruntime.AssertAggregatedValue(
+						"rpc error: code = Unavailable desc = max requests 1 exceeded on service kxds.test-xds.default.default",
+						9,
+					),
 				),
 			),
 		},

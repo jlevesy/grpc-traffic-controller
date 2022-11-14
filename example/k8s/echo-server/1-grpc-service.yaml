@@ -224,3 +224,23 @@ spec:
             name: echo-server-v1
             port:
               name: grpc
+---
+# Circuit breaker.
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: circuit-breaker
+  namespace: echo-server
+spec:
+  listener: echo-server-fraction-route
+  routes:
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v1
+      maxRequests: 20
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc

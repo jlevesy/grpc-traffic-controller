@@ -59,7 +59,8 @@ type Cluster struct {
 	// Name is the name of the Cluster
 	// +kubebuilder:validation:Required
 	Name string `json:"name,omitempty"`
-
+	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
+	MaxRequests *uint32 `json:"maxRequests,omitempty"`
 	// +kubebuilder:validation:MinItems:=1
 	Localities []Locality `json:"localities,omitempty"`
 }
