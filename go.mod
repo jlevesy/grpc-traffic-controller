@@ -6,6 +6,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
 	github.com/go-logr/logr v1.2.3
 	github.com/stretchr/testify v1.8.1
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
 	k8s.io/api v0.25.4

@@ -44,6 +44,12 @@ func BuildLocality(opts ...LocalityOption) kxdsv1alpha1.Locality {
 
 type ClusterOption func(c *kxdsv1alpha1.Cluster)
 
+func WithMaxRequests(req uint32) ClusterOption {
+	return func(c *kxdsv1alpha1.Cluster) {
+		c.MaxRequests = &req
+	}
+}
+
 func WithLocalities(ls ...kxdsv1alpha1.Locality) ClusterOption {
 	return func(c *kxdsv1alpha1.Cluster) {
 		c.Localities = ls

@@ -56,7 +56,7 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 	for i, clusterSpec := range svc.Spec.Clusters {
 		clusterName := resourcePrefix + clusterSpec.Name
 
-		xdsSvc.clusters[i] = makeCluster(clusterName)
+		xdsSvc.clusters[i] = makeCluster(clusterName, clusterSpec)
 
 		loadAssignment, err := makeLoadAssignment(
 			clusterName,
@@ -104,14 +104,6 @@ func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) *listener
 			ApiListener: mustAny(httpConnManager),
 		},
 	}
-}
-
-func makeDuration(duration *kmetav1.Duration) *durationpb.Duration {
-	if duration == nil {
-		return nil
-	}
-
-	return durationpb.New(duration.Duration)
 }
 
 func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, routeSpecs []kxdsv1alpha1.Route) (*route.RouteConfiguration, error) {
@@ -292,8 +284,8 @@ func makeWeightedClusters(resourcePrefix string, routeSpec kxdsv1alpha1.Route) *
 	}
 }
 
-func makeCluster(clusterName string) *cluster.Cluster {
-	return &cluster.Cluster{
+func makeCluster(clusterName string, spec kxdsv1alpha1.Cluster) *cluster.Cluster {
+	c := cluster.Cluster{
 		Name:                 clusterName,
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
@@ -306,6 +298,19 @@ func makeCluster(clusterName string) *cluster.Cluster {
 		},
 		LbPolicy: cluster.Cluster_ROUND_ROBIN,
 	}
+
+	// gRPC xDS only supports max requests, and will always look to the first value of the first threshold.
+	if spec.MaxRequests != nil {
+		c.CircuitBreakers = &cluster.CircuitBreakers{
+			Thresholds: []*cluster.CircuitBreakers_Thresholds{
+				{
+					MaxRequests: wrapperspb.UInt32(*spec.MaxRequests),
+				},
+			},
+		}
+	}
+
+	return &c
 }
 
 func makeLoadAssignment(clusterName, currentNamespace string, localities []kxdsv1alpha1.Locality, k8sEndpoints map[ktypes.NamespacedName]kcorev1.Endpoints) (*endpoint.ClusterLoadAssignment, error) {
@@ -412,6 +417,14 @@ func lookupK8sPort(k8sSvc kxdsv1alpha1.K8sPort, eps kcorev1.EndpointSubset) (uin
 	}
 
 	return 0, false
+}
+
+func makeDuration(duration *kmetav1.Duration) *durationpb.Duration {
+	if duration == nil {
+		return nil
+	}
+
+	return durationpb.New(duration.Duration)
 }
 
 func mustAny(msg protoreflect.ProtoMessage) *anypb.Any {
