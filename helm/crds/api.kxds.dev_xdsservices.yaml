@@ -221,10 +221,6 @@ spec:
                       type: object
                   type: object
                 type: array
-              listener:
-                description: Listener is the listener name that is used to identitfy
-                  a specific service from an xDS perspective.
-                type: string
               maxStreamDuration:
                 description: MaxStreamDuration is the total duration to keep alive
                   an HTTP request/response stream. If the time limit is reached the

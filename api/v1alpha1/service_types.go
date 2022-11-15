@@ -199,9 +199,6 @@ type Route struct {
 
 // XDSServiceSpec defines the desired state of Service
 type XDSServiceSpec struct {
-	// Listener is the listener name that is used to identitfy a specific service from an xDS perspective.
-	// +kubebuilder:validation:Required
-	Listener string `json:"listener,omitempty"`
 	// MaxStreamDuration is the total duration to keep alive an HTTP request/response stream.
 	// If the time limit is reached the stream will be reset independent of any other timeouts.
 	// If not specified, this value is not set.

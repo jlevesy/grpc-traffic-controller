@@ -100,7 +100,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -123,7 +122,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -142,7 +141,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -167,7 +165,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -186,7 +184,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -210,7 +207,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -230,7 +227,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -263,7 +259,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallN(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -290,7 +286,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -323,7 +318,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -346,7 +341,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithPathMatcher(
@@ -369,7 +363,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEchoPremium,
 					),
@@ -381,7 +375,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -405,7 +399,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithPathMatcher(
@@ -428,7 +421,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEchoPremium,
 					),
@@ -440,7 +433,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -464,7 +457,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithPathMatcher(
@@ -491,7 +483,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEchoPremium,
 					),
@@ -503,7 +495,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -527,7 +519,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithCaseSensitive(false),
@@ -551,7 +542,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEchoPremium,
 					),
@@ -563,7 +554,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -587,7 +578,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -613,7 +603,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -629,7 +619,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -656,7 +646,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -680,7 +669,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -698,7 +687,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -722,7 +711,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -749,7 +737,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -766,7 +754,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -790,7 +778,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -817,7 +804,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -834,7 +821,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -862,7 +849,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -886,7 +872,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -903,7 +889,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(testruntime.MethodEcho),
 					testruntime.NoCallErrors,
 					testruntime.AggregateByBackendID(
@@ -923,7 +909,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -947,7 +932,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -964,7 +949,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -992,7 +977,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithHeaderMatchers(
@@ -1016,7 +1000,7 @@ func TestReconciller(t *testing.T) {
 			backendsBehavior: answer,
 			doAssert: testruntime.MultiAssert(
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -1033,7 +1017,7 @@ func TestReconciller(t *testing.T) {
 					),
 				),
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -1061,7 +1045,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							// 20.00% of the traffic will go to v2.
@@ -1085,7 +1068,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallN(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -1106,7 +1089,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(testruntime.BuildSingleRoute("default")),
 					testruntime.WithMaxStreamDuration(50*time.Millisecond),
 					testruntime.WithClusters(
@@ -1130,7 +1112,7 @@ func TestReconciller(t *testing.T) {
 			doAssert: testruntime.WithinDelay(
 				time.Second,
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -1147,7 +1129,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildRoute(
 							testruntime.WithRouteMaxStreamDuration(50*time.Millisecond),
@@ -1182,7 +1163,7 @@ func TestReconciller(t *testing.T) {
 			doAssert: testruntime.WithinDelay(
 				time.Second,
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -1199,7 +1180,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -1223,7 +1203,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: hang(1 * time.Second),
 			doAssert: testruntime.CallNParallel(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -1246,7 +1226,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -1284,7 +1263,7 @@ func TestReconciller(t *testing.T) {
 			doAssert: testruntime.ExceedDelay(
 				200*time.Millisecond,
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 					),
@@ -1301,7 +1280,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -1339,7 +1317,7 @@ func TestReconciller(t *testing.T) {
 			doAssert: testruntime.ExceedDelay(
 				200*time.Millisecond,
 				testruntime.CallOnce(
-					"xds:///echo_server",
+					"xds:///default/test-xds",
 					testruntime.BuildCaller(
 						testruntime.MethodEcho,
 						testruntime.WithMetadata(
@@ -1362,7 +1340,7 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
+
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -1398,7 +1376,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -1414,7 +1392,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -1450,7 +1427,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 				),
@@ -1466,7 +1443,6 @@ func TestReconciller(t *testing.T) {
 				testruntime.BuildXDSService(
 					"test-xds",
 					"default",
-					"echo_server",
 					testruntime.WithRoutes(
 						testruntime.BuildSingleRoute("default"),
 					),
@@ -1502,7 +1478,7 @@ func TestReconciller(t *testing.T) {
 			},
 			backendsBehavior: answer,
 			doAssert: testruntime.CallOnce(
-				"xds:///echo_server",
+				"xds:///default/test-xds",
 				testruntime.BuildCaller(
 					testruntime.MethodEcho,
 					testruntime.WithMetadata(

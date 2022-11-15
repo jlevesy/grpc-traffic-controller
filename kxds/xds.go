@@ -3,6 +3,7 @@ package kxds
 import (
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -41,7 +42,7 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 		err error
 
 		resourcePrefix  = "kxds" + "." + svc.Name + "." + svc.Namespace + "."
-		listenerName    = svc.Spec.Listener
+		listenerName    = path.Join(svc.ObjectMeta.Namespace, svc.ObjectMeta.Name)
 		routeConfigName = resourcePrefix + "routeconfig"
 
 		xdsSvc = xdsService{
@@ -49,7 +50,7 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 		}
 	)
 
-	xdsSvc.listener, err = makeListener(svc, routeConfigName)
+	xdsSvc.listener, err = makeListener(listenerName, svc, routeConfigName)
 	if err != nil {
 		return xdsSvc, err
 	}
@@ -194,7 +195,7 @@ func makeFaultFilter(f *kxdsv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
 	return &ff, nil
 }
 
-func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) (*listener.Listener, error) {
+func makeListener(listenerName string, svc kxdsv1alpha1.XDSService, routeConfigName string) (*listener.Listener, error) {
 	filters, err := makeFilters(svc.Spec.Filters)
 
 	if err != nil {
@@ -218,7 +219,7 @@ func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) (*listene
 	}
 
 	return &listener.Listener{
-		Name: svc.Spec.Listener,
+		Name: listenerName,
 		ApiListener: &listener.ApiListener{
 			ApiListener: mustAny(httpConnManager),
 		},
