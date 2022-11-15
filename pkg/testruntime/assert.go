@@ -23,17 +23,26 @@ func MultiAssert(asserts ...func(t *testing.T)) func(t *testing.T) {
 	}
 }
 
-func WithinDeadline(d time.Duration, assert func(t *testing.T)) func(t *testing.T) {
+func ExceedDelay(d time.Duration, assert func(t *testing.T)) func(t *testing.T) {
 	return func(t *testing.T) {
-		tt := time.NewTimer(d)
-		defer tt.Stop()
+		start := time.Now()
+		assert(t)
 
-		go func() {
-			<-tt.C
-			t.Error("Test did not succeed within deadline")
-		}()
+		if time.Since(start) <= d {
+			t.Fatal("Test duration did not exceed wanted duration")
+		}
+	}
+}
+
+func WithinDelay(d time.Duration, assert func(t *testing.T)) func(t *testing.T) {
+	return func(t *testing.T) {
+		start := time.Now()
 
 		assert(t)
+
+		if time.Since(start) > d {
+			t.Fatal("Test duration did not happen within wanted duration")
+		}
 	}
 }
 

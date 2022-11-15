@@ -10,6 +10,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+func DurationPtr(d time.Duration) *metav1.Duration {
+	return &metav1.Duration{
+		Duration: d,
+	}
+}
+
 type LocalityOption func(l *kxdsv1alpha1.Locality)
 
 func WithLocalityWeight(weight uint32) LocalityOption {
@@ -165,6 +175,12 @@ func BuildSingleRoute(clusterName string) kxdsv1alpha1.Route {
 }
 
 type XDSServiceOpt func(s *kxdsv1alpha1.XDSService)
+
+func WithFilters(fs ...kxdsv1alpha1.Filter) XDSServiceOpt {
+	return func(s *kxdsv1alpha1.XDSService) {
+		s.Spec.Filters = fs
+	}
+}
 
 func WithRoutes(rs ...kxdsv1alpha1.Route) XDSServiceOpt {
 	return func(s *kxdsv1alpha1.XDSService) {
