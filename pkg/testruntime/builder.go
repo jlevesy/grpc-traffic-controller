@@ -200,14 +200,11 @@ func WithMaxStreamDuration(d time.Duration) XDSServiceOpt {
 	}
 }
 
-func BuildXDSService(name, namespace, listener string, opts ...XDSServiceOpt) kxdsv1alpha1.XDSService {
+func BuildXDSService(name, namespace string, opts ...XDSServiceOpt) kxdsv1alpha1.XDSService {
 	s := kxdsv1alpha1.XDSService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-		},
-		Spec: kxdsv1alpha1.XDSServiceSpec{
-			Listener: listener,
 		},
 	}
 
