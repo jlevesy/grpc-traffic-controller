@@ -232,13 +232,68 @@ metadata:
   name: circuit-breaker
   namespace: echo-server
 spec:
-  listener: echo-server-fraction-route
+  listener: echo-server-circuit-breaker
   routes:
     - clusters:
         - name: v1
   clusters:
     - name: v1
       maxRequests: 20
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+
+---
+# Delay Injection filter fixed
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: delay-fault-injection
+  namespace: echo-server
+spec:
+  listener: echo-server-delay-fixed-fault
+  filters:
+    - fault:
+        delay:
+          fixed: 2s
+          percentage:
+            numerator: 50
+  routes:
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v1
+      localities:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+---
+# Fault Injection filter metadata
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: fault-injection-header
+  namespace: echo-server
+spec:
+  listener: echo-server-header-fault
+  filters:
+    - fault:
+        abort:
+          header: {}
+          percentage:
+            numerator: 100
+        delay:
+          header: {}
+          percentage:
+            numerator: 100
+  routes:
+    - clusters:
+        - name: v1
+  clusters:
+    - name: v1
       localities:
         - service:
             name: echo-server-v1
