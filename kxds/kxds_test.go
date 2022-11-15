@@ -1127,7 +1127,7 @@ func TestReconciller(t *testing.T) {
 				),
 			},
 			backendsBehavior: hang(10 * time.Second),
-			doAssert: testruntime.WithinDeadline(
+			doAssert: testruntime.WithinDelay(
 				time.Second,
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -1177,7 +1177,9 @@ func TestReconciller(t *testing.T) {
 				),
 			},
 			backendsBehavior: hang(10 * time.Second),
-			doAssert: testruntime.WithinDeadline(
+			// TODO(jly): this is weird, this test takes  10s when running after max_stream_duration
+			// but only 1s  when being run standalone. Something here is fishy.
+			doAssert: testruntime.WithinDelay(
 				time.Second,
 				testruntime.CallOnce(
 					"xds:///echo_server",
@@ -1233,6 +1235,283 @@ func TestReconciller(t *testing.T) {
 						9,
 					),
 				),
+			),
+		},
+		{
+			desc: "fixed delay injection",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildSingleRoute("default"),
+					),
+					testruntime.WithFilters(
+						kxdsv1alpha1.Filter{
+							Fault: &kxdsv1alpha1.FaultFilter{
+								Delay: &kxdsv1alpha1.FaultDelay{
+									Fixed: testruntime.DurationPtr(500 * time.Millisecond),
+									Percentage: &kxdsv1alpha1.Fraction{
+										Numerator:   100,
+										Denominator: "hundred",
+									},
+								},
+							},
+						},
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"default",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: answer,
+			doAssert: testruntime.ExceedDelay(
+				200*time.Millisecond,
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+					),
+					testruntime.NoCallErrors,
+				),
+			),
+		},
+		{
+			desc: "header delay injection",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildSingleRoute("default"),
+					),
+					testruntime.WithFilters(
+						kxdsv1alpha1.Filter{
+							Fault: &kxdsv1alpha1.FaultFilter{
+								Delay: &kxdsv1alpha1.FaultDelay{
+									Header: &kxdsv1alpha1.HeaderFault{},
+									Percentage: &kxdsv1alpha1.Fraction{
+										Numerator:   100,
+										Denominator: "hundred",
+									},
+								},
+							},
+						},
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"default",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: answer,
+			doAssert: testruntime.ExceedDelay(
+				200*time.Millisecond,
+				testruntime.CallOnce(
+					"xds:///echo_server",
+					testruntime.BuildCaller(
+						testruntime.MethodEcho,
+						testruntime.WithMetadata(
+							map[string]string{
+								// Delay by 500ms.
+								"x-envoy-fault-delay-request": "500",
+							},
+						),
+					),
+					testruntime.NoCallErrors,
+				),
+			),
+		},
+		{
+			desc: "abort injection http",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildSingleRoute("default"),
+					),
+					testruntime.WithFilters(
+						kxdsv1alpha1.Filter{
+							Fault: &kxdsv1alpha1.FaultFilter{
+								Abort: &kxdsv1alpha1.FaultAbort{
+									HTTPStatus: testruntime.Ptr(uint32(404)),
+									Percentage: &kxdsv1alpha1.Fraction{
+										Numerator:   100,
+										Denominator: "hundred",
+									},
+								},
+							},
+						},
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"default",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: answer,
+			doAssert: testruntime.CallOnce(
+				"xds:///echo_server",
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
+				testruntime.MustFail,
+			),
+		},
+		{
+			desc: "abort injection grpc",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildSingleRoute("default"),
+					),
+					testruntime.WithFilters(
+						kxdsv1alpha1.Filter{
+							Fault: &kxdsv1alpha1.FaultFilter{
+								Abort: &kxdsv1alpha1.FaultAbort{
+									GRPCStatus: testruntime.Ptr(uint32(4)),
+									Percentage: &kxdsv1alpha1.Fraction{
+										Numerator:   100,
+										Denominator: "hundred",
+									},
+								},
+							},
+						},
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"default",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: answer,
+			doAssert: testruntime.CallOnce(
+				"xds:///echo_server",
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
+				testruntime.MustFail,
+			),
+		},
+		{
+			desc: "abort header grpc",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					"echo_server",
+					testruntime.WithRoutes(
+						testruntime.BuildSingleRoute("default"),
+					),
+					testruntime.WithFilters(
+						kxdsv1alpha1.Filter{
+							Fault: &kxdsv1alpha1.FaultFilter{
+								Abort: &kxdsv1alpha1.FaultAbort{
+									Header: &kxdsv1alpha1.HeaderFault{},
+									Percentage: &kxdsv1alpha1.Fraction{
+										Numerator:   100,
+										Denominator: "hundred",
+									},
+								},
+							},
+						},
+					),
+					testruntime.WithClusters(
+						testruntime.BuildCluster(
+							"default",
+							testruntime.WithLocalities(
+								testruntime.BuildLocality(
+									testruntime.WithK8sService(
+										kxdsv1alpha1.K8sService{
+											Name: "test-service",
+											Port: grpcPort,
+										},
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: answer,
+			doAssert: testruntime.CallOnce(
+				"xds:///echo_server",
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+					testruntime.WithMetadata(
+						map[string]string{
+							"x-envoy-fault-abort-grpc-request": "3",
+						},
+					),
+				),
+				testruntime.MustFail,
 			),
 		},
 	} {

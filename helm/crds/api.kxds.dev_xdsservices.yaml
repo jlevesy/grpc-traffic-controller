@@ -91,6 +91,136 @@ spec:
                   type: object
                 minItems: 1
                 type: array
+              filters:
+                description: Filters represent the list of filters applied in that
+                  service.
+                items:
+                  properties:
+                    fault:
+                      description: Fault Filter configuration.
+                      properties:
+                        abort:
+                          description: Abort the call.
+                          properties:
+                            grpc:
+                              description: Returns the gRPC status code.
+                              format: int32
+                              type: integer
+                            header:
+                              description: Header adds a fault controlled by an HTTP
+                                header.
+                              type: object
+                            http:
+                              description: Returns the HTTP status code.
+                              format: int32
+                              type: integer
+                            percentage:
+                              description: Percentage controls how much this fault
+                                delay will be injected.
+                              properties:
+                                denominator:
+                                  default: hundred
+                                  description: Denominator of the fration.
+                                  enum:
+                                  - hundred
+                                  - ten_thousand
+                                  - million
+                                  type: string
+                                numerator:
+                                  description: Numerator of the fraction
+                                  format: int32
+                                  type: integer
+                              type: object
+                          type: object
+                        delay:
+                          description: Inject a delay.
+                          properties:
+                            fixed:
+                              description: FixedDelay adds a fixed delay before a
+                                call.
+                              type: string
+                            header:
+                              description: Header adds a delay controlled by an HTTP
+                                header.
+                              type: object
+                            percentage:
+                              description: Percentage controls how much this fault
+                                delay will be injected.
+                              properties:
+                                denominator:
+                                  default: hundred
+                                  description: Denominator of the fration.
+                                  enum:
+                                  - hundred
+                                  - ten_thousand
+                                  - million
+                                  type: string
+                                numerator:
+                                  description: Numerator of the fraction
+                                  format: int32
+                                  type: integer
+                              type: object
+                          type: object
+                        headers:
+                          description: Specifies a set of headers that the filter
+                            should match on.
+                          items:
+                            description: HeaderMatcher indicates a match based on
+                              an http header.
+                            properties:
+                              exact:
+                                description: Match the exact value of a header.
+                                type: string
+                              invert:
+                                description: Invert that header match.
+                                type: boolean
+                              name:
+                                description: Name of the header to match.
+                                type: string
+                              prefix:
+                                description: Header value must have a prefix.
+                                type: string
+                              present:
+                                description: Header must be present.
+                                type: boolean
+                              range:
+                                description: Header Value must match a range.
+                                properties:
+                                  end:
+                                    description: End of the range (exclusive)
+                                    format: int64
+                                    type: integer
+                                  start:
+                                    description: Start of the range (inclusive)
+                                    format: int64
+                                    type: integer
+                                type: object
+                              regex:
+                                description: Match a regex. Must match the whole value.
+                                properties:
+                                  engine:
+                                    default: re2
+                                    description: The regexp engine to use.
+                                    enum:
+                                    - re2
+                                    type: string
+                                  regex:
+                                    description: Regexp to evaluate the path against.
+                                    type: string
+                                type: object
+                              suffix:
+                                description: Header value must have a suffix.
+                                type: string
+                            type: object
+                          type: array
+                        maxActiveFaults:
+                          description: The maximum number of faults that can be active
+                            at a single time.
+                          format: int32
+                          type: integer
+                      type: object
+                  type: object
+                type: array
               listener:
                 description: Listener is the listener name that is used to identitfy
                   a specific service from an xDS perspective.

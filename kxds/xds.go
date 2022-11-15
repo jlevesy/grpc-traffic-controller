@@ -10,6 +10,8 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	faultv31 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/common/fault/v3"
+	faultv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
@@ -43,10 +45,14 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 		routeConfigName = resourcePrefix + "routeconfig"
 
 		xdsSvc = xdsService{
-			listener: makeListener(svc, routeConfigName),
 			clusters: make([]types.Resource, len(svc.Spec.Clusters)),
 		}
 	)
+
+	xdsSvc.listener, err = makeListener(svc, routeConfigName)
+	if err != nil {
+		return xdsSvc, err
+	}
 
 	xdsSvc.routeConfig, err = makeRouteConfig(resourcePrefix, routeConfigName, listenerName, svc.Spec.Routes)
 	if err != nil {
@@ -74,7 +80,127 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 	return xdsSvc, nil
 }
 
-func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) *listener.Listener {
+func makeFilters(filters []kxdsv1alpha1.Filter) ([]*hcm.HttpFilter, error) {
+	routerFilter := &hcm.HttpFilter{
+		Name: wellknown.Router,
+		ConfigType: &hcm.HttpFilter_TypedConfig{
+			TypedConfig: mustAny(&router.Router{}),
+		},
+	}
+
+	if len(filters) == 0 {
+		return []*hcm.HttpFilter{
+			routerFilter,
+		}, nil
+	}
+
+	hcmFilters := make([]*hcm.HttpFilter, len(filters)+1)
+
+	for i, filterSpec := range filters {
+		var err error
+
+		hcmFilters[i], err = makeFilter(filterSpec)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Always set the router last.
+	hcmFilters[len(filters)] = routerFilter
+
+	return hcmFilters, nil
+}
+
+func makeFilter(filter kxdsv1alpha1.Filter) (*hcm.HttpFilter, error) {
+	switch {
+	case filter.Fault != nil:
+		faultFilter, err := makeFaultFilter(filter.Fault)
+		if err != nil {
+			return nil, err
+		}
+
+		return &hcm.HttpFilter{
+			Name: wellknown.Fault,
+			ConfigType: &hcm.HttpFilter_TypedConfig{
+				TypedConfig: mustAny(faultFilter),
+			},
+		}, nil
+	default:
+		return nil, errors.New("malformed filter")
+	}
+}
+
+func makeFaultFilter(f *kxdsv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
+	var ff faultv3.HTTPFault
+
+	if f.Delay != nil {
+		ff.Delay = &faultv31.FaultDelay{}
+
+		switch {
+		case f.Delay.Fixed != nil:
+			ff.Delay.FaultDelaySecifier = &faultv31.FaultDelay_FixedDelay{
+				FixedDelay: durationpb.New(f.Delay.Fixed.Duration),
+			}
+		case f.Delay.Header != nil:
+			ff.Delay.FaultDelaySecifier = &faultv31.FaultDelay_HeaderDelay_{}
+		default:
+			return nil, errors.New("malformed delay fault filter")
+		}
+
+		if f.Delay.Percentage != nil {
+			var err error
+
+			ff.Delay.Percentage, err = makeFractionalPercent(f.Delay.Percentage)
+
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if f.Abort != nil {
+		ff.Abort = &faultv3.FaultAbort{}
+
+		switch {
+		case f.Abort.HTTPStatus != nil:
+			ff.Abort.ErrorType = &faultv3.FaultAbort_HttpStatus{
+				HttpStatus: *f.Abort.HTTPStatus,
+			}
+		case f.Abort.GRPCStatus != nil:
+			ff.Abort.ErrorType = &faultv3.FaultAbort_GrpcStatus{
+				GrpcStatus: *f.Abort.GRPCStatus,
+			}
+		case f.Abort.Header != nil:
+			ff.Abort.ErrorType = &faultv3.FaultAbort_HeaderAbort_{}
+		default:
+			return nil, errors.New("malformed abort fault filter")
+		}
+
+		if f.Abort.Percentage != nil {
+			var err error
+
+			ff.Abort.Percentage, err = makeFractionalPercent(f.Abort.Percentage)
+
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if f.MaxActiveFaults != nil {
+		ff.MaxActiveFaults = wrapperspb.UInt32(*f.MaxActiveFaults)
+	}
+
+	return &ff, nil
+}
+
+func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) (*listener.Listener, error) {
+	filters, err := makeFilters(svc.Spec.Filters)
+
+	if err != nil {
+		return nil, err
+	}
+
 	httpConnManager := &hcm.HttpConnectionManager{
 		CommonHttpProtocolOptions: &core.HttpProtocolOptions{
 			MaxStreamDuration: makeDuration(svc.Spec.MaxStreamDuration),
@@ -88,14 +214,7 @@ func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) *listener
 				},
 			},
 		},
-		HttpFilters: []*hcm.HttpFilter{
-			{
-				Name: wellknown.Router,
-				ConfigType: &hcm.HttpFilter_TypedConfig{
-					TypedConfig: mustAny(&router.Router{}),
-				},
-			},
-		},
+		HttpFilters: filters,
 	}
 
 	return &listener.Listener{
@@ -103,7 +222,7 @@ func makeListener(svc kxdsv1alpha1.XDSService, routeConfigName string) *listener
 		ApiListener: &listener.ApiListener{
 			ApiListener: mustAny(httpConnManager),
 		},
-	}
+	}, nil
 }
 
 func makeRouteConfig(resourcePrefix, routeConfigName, listenerName string, routeSpecs []kxdsv1alpha1.Route) (*route.RouteConfiguration, error) {
@@ -172,19 +291,13 @@ func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
 	match.Headers = make([]*route.HeaderMatcher, len(spec.Headers))
 
 	if spec.RuntimeFraction != nil {
-		denominator, ok := typev3.FractionalPercent_DenominatorType_value[strings.ToUpper(spec.RuntimeFraction.Denominator)]
-		if !ok {
-			return nil, fmt.Errorf(
-				"unsupported denominator %q for runtime fraction",
-				spec.RuntimeFraction.Denominator,
-			)
+		fraction, err := makeFractionalPercent(spec.RuntimeFraction)
+		if err != nil {
+			return nil, err
 		}
 
 		match.RuntimeFraction = &core.RuntimeFractionalPercent{
-			DefaultValue: &typev3.FractionalPercent{
-				Numerator:   spec.RuntimeFraction.Numerator,
-				Denominator: typev3.FractionalPercent_DenominatorType(denominator),
-			},
+			DefaultValue: fraction,
 		}
 	}
 
@@ -434,4 +547,19 @@ func mustAny(msg protoreflect.ProtoMessage) *anypb.Any {
 	}
 
 	return p
+}
+
+func makeFractionalPercent(p *kxdsv1alpha1.Fraction) (*typev3.FractionalPercent, error) {
+	denominator, ok := typev3.FractionalPercent_DenominatorType_value[strings.ToUpper(p.Denominator)]
+	if !ok {
+		return nil, fmt.Errorf(
+			"unsupported denominator %q for runtime fraction",
+			p.Denominator,
+		)
+	}
+
+	return &typev3.FractionalPercent{
+		Numerator:   p.Numerator,
+		Denominator: typev3.FractionalPercent_DenominatorType(denominator),
+	}, nil
 }

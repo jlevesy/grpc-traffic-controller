@@ -135,6 +135,45 @@ type Fraction struct {
 	Denominator string `json:"denominator,omitempty"`
 }
 
+type HeaderFault struct{}
+
+type FaultDelay struct {
+	// FixedDelay adds a fixed delay before a call.
+	Fixed *metav1.Duration `json:"fixed,omitempty"`
+	// Header adds a delay controlled by an HTTP header.
+	Header *HeaderFault `json:"header,omitempty"`
+	// Percentage controls how much this fault delay will be injected.
+	Percentage *Fraction `json:"percentage,omitempty"`
+}
+
+type FaultAbort struct {
+	// Returns the HTTP status code.
+	HTTPStatus *uint32 `json:"http,omitempty"`
+	// Returns the gRPC status code.
+	GRPCStatus *uint32 `json:"grpc,omitempty"`
+	// Header adds a fault controlled by an HTTP header.
+	Header *HeaderFault `json:"header,omitempty"`
+	// Percentage controls how much this fault delay will be injected.
+	Percentage *Fraction `json:"percentage,omitempty"`
+}
+
+type FaultFilter struct {
+	// Inject a delay.
+	Delay *FaultDelay `json:"delay,omitempty"`
+	// Abort the call.
+	Abort *FaultAbort `json:"abort,omitempty"`
+	// The maximum number of faults that can be active at a single time.
+	MaxActiveFaults *uint32 `json:"maxActiveFaults,omitempty"`
+	// Specifies a set of headers that the filter should match on.
+	Headers []HeaderMatcher `json:"headers,omitempty"`
+}
+
+type Filter struct {
+	// Fault Filter configuration.
+	// +optional
+	Fault *FaultFilter `json:"fault,omitempty"`
+}
+
 // Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
 type Route struct {
 	// Path allows to specfies path matcher for a specific route.
@@ -167,6 +206,9 @@ type XDSServiceSpec struct {
 	// If the time limit is reached the stream will be reset independent of any other timeouts.
 	// If not specified, this value is not set.
 	MaxStreamDuration *metav1.Duration `json:"maxStreamDuration,omitempty"`
+	// Filters represent the list of filters applied in that service.
+	// +optional
+	Filters []Filter `json:"filters,omitempty"`
 	// Routes lists all the routes defined for an XDSService.
 	// +kubebuilder:validation:MinItems:=1
 	Routes []Route `json:"routes,omitempty"`
