@@ -2,14 +2,13 @@
 # https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md
 ---
 # Basic example: one listeners maps to a route and a single K8s service
-# Listener address: xds://echo-server-basic
+# Listener address: xds:///echo-server/basic
 apiVersion: api.kxds.dev/v1alpha1
 kind: XDSService
 metadata:
-  name: basic-example
+  name: basic
   namespace: echo-server
 spec:
-  listener: echo-server-basic
   routes:
     - clusters:
         - name: default
@@ -23,14 +22,13 @@ spec:
 ---
 # Locality based Weighted Round Robin: This example makes all gRPC clients using this listener send 20% of their traffic to
 # the v2 instance of the echo-server, and 80% to the v1 instance.
-# Listener address: xds://echo-server-locality-wrr
+# Listener address: xds:///echo-server/locality-wrr
 apiVersion: api.kxds.dev/v1alpha1
 kind: XDSService
 metadata:
   name: locality-wrr
   namespace: echo-server
 spec:
-  listener: echo-server-locality-wrr
   routes:
     - clusters:
         - name: default
@@ -50,14 +48,13 @@ spec:
 ---
 # Locality fallback: This example makes all gRPC clients using this listener send 100% the the `echo-server-v2` service
 # but fall back to the v1 instance if the v2 service goes down.
-# Listener address: xds://echo-server-fallback
+# Listener address: xds:///echo-server/fallback
 apiVersion: api.kxds.dev/v1alpha1
 kind: XDSService
 metadata:
   name: fallback
   namespace: echo-server
 spec:
-  listener: echo-server-fallback
   routes:
     - clusters:
         - name: default
@@ -84,7 +81,6 @@ metadata:
   name: path-matcher
   namespace: echo-server
 spec:
-  listener: echo-server-path
   routes:
     - path:
         path: /echo.Echo/EchoPremium
@@ -113,7 +109,6 @@ metadata:
   name: prefix-matcher
   namespace: echo-server
 spec:
-  listener: echo-server-prefix
   routes:
     - path:
         prefix: /echo.Echo/EchoP
@@ -142,7 +137,6 @@ metadata:
   name: regex-matcher
   namespace: echo-server
 spec:
-  listener: echo-server-regex
   routes:
     - path:
         regex:
@@ -173,7 +167,6 @@ metadata:
   name: header-exact-matcher
   namespace: echo-server
 spec:
-  listener: echo-server-header-exact
   routes:
     - headers:
         - name: "x-version"
@@ -203,7 +196,6 @@ metadata:
   name: fractional-route-matcher
   namespace: echo-server
 spec:
-  listener: echo-server-fraction-route
   routes:
     - fraction:
         numerator: 20
@@ -232,7 +224,6 @@ metadata:
   name: circuit-breaker
   namespace: echo-server
 spec:
-  listener: echo-server-circuit-breaker
   routes:
     - clusters:
         - name: v1
@@ -253,7 +244,6 @@ metadata:
   name: delay-fault-injection
   namespace: echo-server
 spec:
-  listener: echo-server-delay-fixed-fault
   filters:
     - fault:
         delay:
@@ -278,7 +268,6 @@ metadata:
   name: fault-injection-header
   namespace: echo-server
 spec:
-  listener: echo-server-header-fault
   filters:
     - fault:
         abort:
