@@ -200,6 +200,12 @@ func WithMaxStreamDuration(d time.Duration) XDSServiceOpt {
 	}
 }
 
+func WithDefaultLocality(l kxdsv1alpha1.Locality) XDSServiceOpt {
+	return func(s *kxdsv1alpha1.XDSService) {
+		s.Spec.DefaultLocality = &l
+	}
+}
+
 func BuildXDSService(name, namespace string, opts ...XDSServiceOpt) kxdsv1alpha1.XDSService {
 	s := kxdsv1alpha1.XDSService{
 		ObjectMeta: metav1.ObjectMeta{

@@ -176,6 +176,39 @@ func TestReconciller(t *testing.T) {
 			),
 		},
 		{
+			desc: "single call default locality",
+			endpoints: []corev1.Endpoints{
+				testruntime.BuildEndpoints("test-service", "default", backends[0:1]),
+			},
+			xdsServices: []kxdsv1alpha1.XDSService{
+				testruntime.BuildXDSService(
+					"test-xds",
+					"default",
+					testruntime.WithDefaultLocality(
+						testruntime.BuildLocality(
+							testruntime.WithK8sService(
+								kxdsv1alpha1.K8sService{
+									Name: "test-service",
+									Port: grpcPort,
+								},
+							),
+						),
+					),
+				),
+			},
+			backendsBehavior: answer,
+			doAssert: testruntime.CallOnce(
+				"xds:///default/test-xds",
+				testruntime.BuildCaller(
+					testruntime.MethodEcho,
+				),
+				testruntime.NoCallErrors,
+				testruntime.AggregateByBackendID(
+					testruntime.AssertAggregatedValue("backend-0", 1),
+				),
+			),
+		},
+		{
 			desc: "cross namespace",
 			endpoints: []corev1.Endpoints{
 				testruntime.BuildEndpoints("test-service", "some-app", backends[0:1]),

@@ -55,6 +55,45 @@ func makeXDSService(svc kxdsv1alpha1.XDSService, k8sEndpoints map[ktypes.Namespa
 		return xdsSvc, err
 	}
 
+	if svc.Spec.DefaultLocality != nil {
+		xdsSvc.routeConfig, err = makeRouteConfig(
+			resourcePrefix,
+			routeConfigName,
+			listenerName,
+			[]kxdsv1alpha1.Route{
+				{
+					Clusters: []kxdsv1alpha1.ClusterRef{
+						{Name: "default", Weight: 1},
+					},
+				},
+			},
+		)
+		if err != nil {
+			return xdsSvc, err
+		}
+
+		clusterName := resourcePrefix + "default"
+		xdsSvc.clusters = []types.Resource{
+			makeCluster(
+				clusterName,
+				kxdsv1alpha1.Cluster{Name: "default"},
+			),
+		}
+		loadAssignment, err := makeLoadAssignment(
+			clusterName,
+			svc.Namespace,
+			[]kxdsv1alpha1.Locality{*svc.Spec.DefaultLocality},
+			k8sEndpoints,
+		)
+		if err != nil {
+			return xdsSvc, err
+		}
+
+		xdsSvc.loadAssignments = append(xdsSvc.loadAssignments, loadAssignment)
+
+		return xdsSvc, nil
+	}
+
 	xdsSvc.routeConfig, err = makeRouteConfig(resourcePrefix, routeConfigName, listenerName, svc.Spec.Routes)
 	if err != nil {
 		return xdsSvc, err
