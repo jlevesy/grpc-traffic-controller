@@ -50,7 +50,7 @@ vet: ## Run go vet against code.
 test: manifests generate gen-protoc fmt vet ## Run tests.
 	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v -run=$(T)
 
-.PHONY: debug_test 
+.PHONY: debug_test
 debug_test: manifests generate gen-protoc fmt vet ## Run tests.
 	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json dlv test ./$(TEST_PKG) -- -test.count=$(TEST_COUNT) -test.v -test.run=$(T)
 
@@ -61,9 +61,13 @@ ci_test: ## Run tests without generation.
 .PHONY: dev
 dev: create_cluster deploy install_example
 
-.PHONY: client_shell
-client_shell:
+.PHONY: client_shell_0
+client_shell_0:
 	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[0].metadata.name}") -- ash
+
+.PHONY: client_shell_1
+client_shell_1:
+	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[1].metadata.name}") -- ash
 
 .PHONY: install_example
 install_example: gen-protoc ## install an example in the current cluster
