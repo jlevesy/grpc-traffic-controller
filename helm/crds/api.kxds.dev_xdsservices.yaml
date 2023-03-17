@@ -36,7 +36,7 @@ spec:
             description: XDSServiceSpec defines the desired state of Service
             properties:
               clusters:
-                description: Routes lists all the  clusters defined for an XDSService.
+                description: Clusters lists all the clusters defined for an XDSService.
                 items:
                   description: Cluster is a group of backend servers serving the same
                     services.
@@ -91,6 +91,41 @@ spec:
                   type: object
                 minItems: 1
                 type: array
+              defaultLocality:
+                description: DefaultLocality allows to specify a single locality that
+                  will catch all the calls for the given listener.
+                properties:
+                  priority:
+                    description: Priority of the locality, if defined, all entries
+                      must unique for a given priority and priority should be defined
+                      without any gap.
+                    format: int32
+                    type: integer
+                  service:
+                    description: Services is a reference to a kubernetes service.
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                      port:
+                        description: K8sPort represents a reference to a port. This
+                          could be done either by number or by name.
+                        maxProperties: 1
+                        properties:
+                          name:
+                            type: string
+                          number:
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
+                  weight:
+                    default: 1
+                    description: Weight of the locality, defaults to one.
+                    format: int32
+                    type: integer
+                type: object
               filters:
                 description: Filters represent the list of filters applied in that
                   service.

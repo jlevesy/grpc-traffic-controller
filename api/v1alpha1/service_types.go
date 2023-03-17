@@ -209,9 +209,12 @@ type XDSServiceSpec struct {
 	// Routes lists all the routes defined for an XDSService.
 	// +kubebuilder:validation:MinItems:=1
 	Routes []Route `json:"routes,omitempty"`
-	// Routes lists all the  clusters defined for an XDSService.
+	// Clusters lists all the clusters defined for an XDSService.
 	// +kubebuilder:validation:MinItems:=1
 	Clusters []Cluster `json:"clusters,omitempty"`
+
+	// DefaultLocality allows to specify a single locality that will catch all the calls for the given listener.
+	DefaultLocality *Locality `json:"defaultLocality,omitempty"`
 }
 
 //+kubebuilder:object:root=true

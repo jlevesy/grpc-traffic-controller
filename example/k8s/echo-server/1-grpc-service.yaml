@@ -1,6 +1,19 @@
 # gRFC A27 examples
 # https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md
 ---
+# Basic example using defaultLocality
+apiVersion: api.kxds.dev/v1alpha1
+kind: XDSService
+metadata:
+  name: default-locality
+  namespace: echo-server
+spec:
+  defaultLocality:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic
 apiVersion: api.kxds.dev/v1alpha1
