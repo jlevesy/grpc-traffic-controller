@@ -2,6 +2,7 @@ package testruntime
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,18 +16,24 @@ import (
 	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
 )
 
-func MultiAssert(asserts ...func(t *testing.T)) func(t *testing.T) {
-	return func(t *testing.T) {
+func MultiAssert(asserts ...func(t *testing.T, callCtx *CallContext)) func(t *testing.T, callCtx *CallContext) {
+	return func(t *testing.T, callCtx *CallContext) {
 		for _, assert := range asserts {
-			assert(t)
+			assert(t, callCtx)
 		}
 	}
 }
 
-func ExceedDelay(d time.Duration, assert func(t *testing.T)) func(t *testing.T) {
-	return func(t *testing.T) {
+func Wait(d time.Duration) func(*testing.T, *CallContext) {
+	return func(*testing.T, *CallContext) {
+		time.Sleep(d)
+	}
+}
+
+func ExceedDelay(d time.Duration, assert func(*testing.T, *CallContext)) func(*testing.T, *CallContext) {
+	return func(t *testing.T, callCtx *CallContext) {
 		start := time.Now()
-		assert(t)
+		assert(t, callCtx)
 
 		if time.Since(start) <= d {
 			t.Fatal("Test duration did not exceed wanted duration")
@@ -34,11 +41,11 @@ func ExceedDelay(d time.Duration, assert func(t *testing.T)) func(t *testing.T) 
 	}
 }
 
-func WithinDelay(d time.Duration, assert func(t *testing.T)) func(t *testing.T) {
-	return func(t *testing.T) {
+func WithinDelay(d time.Duration, assert func(*testing.T, *CallContext)) func(*testing.T, *CallContext) {
+	return func(t *testing.T, callCtx *CallContext) {
 		start := time.Now()
 
-		assert(t)
+		assert(t, callCtx)
 
 		if time.Since(start) > d {
 			t.Fatal("Test duration did not happen within wanted duration")
@@ -47,16 +54,26 @@ func WithinDelay(d time.Duration, assert func(t *testing.T)) func(t *testing.T) 
 }
 
 type Caller struct {
-	m   Method
-	req *echo.EchoRequest
-	ctx context.Context
+	m       Method
+	req     *echo.EchoRequest
+	ctx     context.Context
+	timeout time.Duration
 }
 
 func (c *Caller) Do(cl echo.EchoClient) (*echo.EchoReply, error) {
-	return c.m(c.ctx, cl, c.req)
+	ctx, cancel := context.WithTimeout(c.ctx, c.timeout)
+	defer cancel()
+
+	return c.m(ctx, cl, c.req)
 }
 
 type CallerOpt func(c *Caller)
+
+func WithTimeout(d time.Duration) CallerOpt {
+	return func(c *Caller) {
+		c.timeout = d
+	}
+}
 
 func WithMetadata(meta map[string]string) CallerOpt {
 	return WithContext(
@@ -79,7 +96,8 @@ func BuildCaller(method Method, opts ...CallerOpt) Caller {
 		req: &echo.EchoRequest{
 			Payload: "Hello There!",
 		},
-		ctx: context.Background(),
+		ctx:     context.Background(),
+		timeout: 10 * time.Second,
 	}
 
 	for _, opt := range opts {
@@ -107,11 +125,18 @@ type call struct {
 
 type CallsAssertion func(t *testing.T, calls []call)
 
-func CallOnce(addr string, caller Caller, assertions ...CallsAssertion) func(t *testing.T) {
-	return CallN(addr, caller, 1, assertions...)
+type CallContext struct {
+	addr   string
+	conn   *grpc.ClientConn
+	client echo.EchoClient
 }
-func CallN(addr string, caller Caller, count int, assertions ...CallsAssertion) func(t *testing.T) {
-	return func(t *testing.T) {
+
+func (c *CallContext) Close() error {
+	return c.conn.Close()
+}
+
+func DefaultCallContext(addr string) func(t *testing.T) *CallContext {
+	return func(t *testing.T) *CallContext {
 		conn, err := grpc.Dial(
 			addr,
 			grpc.WithTransportCredentials(
@@ -120,19 +145,28 @@ func CallN(addr string, caller Caller, count int, assertions ...CallsAssertion) 
 		)
 		require.NoError(t, err)
 
-		defer conn.Close()
+		return &CallContext{
+			addr:   addr,
+			conn:   conn,
+			client: echo.NewEchoClient(conn),
+		}
+	}
+}
 
-		var (
-			client = echo.NewEchoClient(conn)
-			calls  = make([]call, count)
-		)
+func CallOnce(caller Caller, assertions ...CallsAssertion) func(t *testing.T, callCtx *CallContext) {
+	return CallN(caller, 1, assertions...)
+}
+
+func CallN(caller Caller, count int, assertions ...CallsAssertion) func(t *testing.T, callCtx *CallContext) {
+	return func(t *testing.T, callCtx *CallContext) {
+		calls := make([]call, count)
 
 		for i := 0; i < count; i++ {
 			var c call
 
-			resp, err := caller.Do(client)
+			resp, err := caller.Do(callCtx.client)
 
-			c.addr = addr
+			c.addr = callCtx.addr
 			c.err = err
 			if err == nil {
 				c.backendID = resp.ServerId
@@ -147,21 +181,10 @@ func CallN(addr string, caller Caller, count int, assertions ...CallsAssertion) 
 	}
 }
 
-func CallNParallel(addr string, caller Caller, count int, assertions ...CallsAssertion) func(t *testing.T) {
-	return func(t *testing.T) {
-		conn, err := grpc.Dial(
-			addr,
-			grpc.WithTransportCredentials(
-				insecure.NewCredentials(),
-			),
-		)
-		require.NoError(t, err)
-
-		defer conn.Close()
-
+func CallNParallel(caller Caller, count int, assertions ...CallsAssertion) func(t *testing.T, callCtx *CallContext) {
+	return func(t *testing.T, callCtx *CallContext) {
 		var (
-			client = echo.NewEchoClient(conn)
-			calls  = make([]call, count)
+			calls = make([]call, count)
 
 			group errgroup.Group
 		)
@@ -173,9 +196,9 @@ func CallNParallel(addr string, caller Caller, count int, assertions ...CallsAss
 					c call
 				)
 
-				resp, err := caller.Do(client)
+				resp, err := caller.Do(callCtx.client)
 
-				c.addr = addr
+				c.addr = callCtx.addr
 				c.err = err
 
 				if err == nil {
@@ -230,7 +253,7 @@ func AggregateByError(asserts ...AggregatedCallAssertion) CallsAssertion {
 	}
 }
 
-func AggregateByBackendID(asserts ...AggregatedCallAssertion) CallsAssertion {
+func CountByBackendID(asserts ...AggregatedCallAssertion) CallsAssertion {
 	return func(t *testing.T, calls []call) {
 		agg := make(map[string]int)
 
@@ -254,13 +277,27 @@ func DumpCounts(t *testing.T, aggs map[string]int) {
 	}
 }
 
-func AssertAggregatedValue(backendID string, wantCount int) AggregatedCallAssertion {
+func AssertCount(backendID string, wantCount int) AggregatedCallAssertion {
 	return func(t *testing.T, aggs map[string]int) {
 		assert.Equal(t, wantCount, aggs[backendID], backendID)
 	}
 }
 
-func AssertAggregatedValueWithinDelta(backendID string, wantCount int, delta float64) AggregatedCallAssertion {
+func AssertAggregatedValuePartial(partial string, wantCount int) AggregatedCallAssertion {
+	return func(t *testing.T, aggs map[string]int) {
+		var matchCount int
+
+		for k, v := range aggs {
+			if strings.Contains(k, partial) {
+				matchCount += v
+			}
+		}
+
+		assert.Equal(t, wantCount, matchCount, partial)
+	}
+}
+
+func AssertCountWithinDelta(backendID string, wantCount int, delta float64) AggregatedCallAssertion {
 	return func(t *testing.T, aggs map[string]int) {
 		assert.InDelta(t, wantCount, aggs[backendID], delta, backendID)
 	}

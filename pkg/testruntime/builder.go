@@ -1,12 +1,9 @@
 package testruntime
 
 import (
-	"net"
-	"strconv"
 	"time"
 
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,6 +15,38 @@ func DurationPtr(d time.Duration) *metav1.Duration {
 	return &metav1.Duration{
 		Duration: d,
 	}
+}
+
+type ClusterOption func(c *kxdsv1alpha1.Cluster)
+
+func WithMaxRequests(req uint32) ClusterOption {
+	return func(c *kxdsv1alpha1.Cluster) {
+		c.MaxRequests = &req
+	}
+}
+
+func WithServiceRef(s kxdsv1alpha1.ServiceRef) ClusterOption {
+	return func(c *kxdsv1alpha1.Cluster) {
+		c.Service = &s
+	}
+}
+
+func WithLocalities(l ...kxdsv1alpha1.Locality) ClusterOption {
+	return func(c *kxdsv1alpha1.Cluster) {
+		c.Localities = l
+	}
+}
+
+func BuildCluster(name string, opts ...ClusterOption) kxdsv1alpha1.Cluster {
+	c := kxdsv1alpha1.Cluster{
+		Name: name,
+	}
+
+	for _, opt := range opts {
+		opt(&c)
+	}
+
+	return c
 }
 
 type LocalityOption func(l *kxdsv1alpha1.Locality)
@@ -34,7 +63,7 @@ func WithLocalityPriority(priority uint32) LocalityOption {
 	}
 }
 
-func WithK8sService(s kxdsv1alpha1.K8sService) LocalityOption {
+func WithLocalityServiceRef(s kxdsv1alpha1.ServiceRef) LocalityOption {
 	return func(l *kxdsv1alpha1.Locality) {
 		l.Service = &s
 	}
@@ -52,30 +81,22 @@ func BuildLocality(opts ...LocalityOption) kxdsv1alpha1.Locality {
 	return l
 }
 
-type ClusterOption func(c *kxdsv1alpha1.Cluster)
+type DefaultClusterOption func(c *kxdsv1alpha1.DefaultCluster)
 
-func WithMaxRequests(req uint32) ClusterOption {
-	return func(c *kxdsv1alpha1.Cluster) {
-		c.MaxRequests = &req
-	}
-}
+func BuildDefaultCluster(opts ...DefaultClusterOption) kxdsv1alpha1.DefaultCluster {
+	var c kxdsv1alpha1.DefaultCluster
 
-func WithLocalities(ls ...kxdsv1alpha1.Locality) ClusterOption {
-	return func(c *kxdsv1alpha1.Cluster) {
-		c.Localities = ls
-	}
-}
-
-func BuildCluster(name string, opts ...ClusterOption) kxdsv1alpha1.Cluster {
-	c := kxdsv1alpha1.Cluster{
-		Name: name,
-	}
-
-	for _, opt := range opts {
-		opt(&c)
+	for _, o := range opts {
+		o(&c)
 	}
 
 	return c
+}
+
+func WithDefaultServiceRef(s kxdsv1alpha1.ServiceRef) DefaultClusterOption {
+	return func(c *kxdsv1alpha1.DefaultCluster) {
+		c.Service = &s
+	}
 }
 
 func HeaderInvertMatch(in kxdsv1alpha1.HeaderMatcher) kxdsv1alpha1.HeaderMatcher {
@@ -200,9 +221,9 @@ func WithMaxStreamDuration(d time.Duration) XDSServiceOpt {
 	}
 }
 
-func WithDefaultLocality(l kxdsv1alpha1.Locality) XDSServiceOpt {
+func WithDefaultCluster(l kxdsv1alpha1.DefaultCluster) XDSServiceOpt {
 	return func(s *kxdsv1alpha1.XDSService) {
-		s.Spec.DefaultLocality = &l
+		s.Spec.DefaultCluster = &l
 	}
 }
 
@@ -219,35 +240,4 @@ func BuildXDSService(name, namespace string, opts ...XDSServiceOpt) kxdsv1alpha1
 	}
 
 	return s
-}
-
-func BuildEndpoints(name, namespace string, backends []Backend) corev1.Endpoints {
-	subsets := make([]corev1.EndpointSubset, len(backends))
-
-	for i, b := range backends {
-		_, p, _ := net.SplitHostPort(b.Listener.Addr().String())
-		pp, _ := strconv.Atoi(p)
-
-		subsets[i] = corev1.EndpointSubset{
-			Addresses: []corev1.EndpointAddress{
-				{
-					IP: "127.0.0.1",
-				},
-			},
-			Ports: []corev1.EndpointPort{
-				{
-					Port: int32(pp),
-					Name: "grpc",
-				},
-			},
-		}
-	}
-
-	return corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Subsets: subsets,
-	}
 }

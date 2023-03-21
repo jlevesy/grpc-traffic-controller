@@ -1,13 +1,9 @@
 TEST_COUNT?=1
 TEST_PKG?=kxds
-K3S_VERSION=v1.25.0-k3s1
-ifeq (,$(shell go env GOBIN))
-GOBIN=$(shell go env GOPATH)/bin
-else
-GOBIN=$(shell go env GOBIN)
-endif
-SHELL=/usr/bin/env bash -o pipefail
-.SHELLFLAGS=-ec
+K3S_VERSION?=v1.25.0-k3s1
+CODE_GENERATOR_VERSION=0.26.3
+CONTROLLER_TOOLS_VERSION=0.9.2
+LOG_LEVEL?=info
 
 .PHONY: all
 all: build
@@ -20,39 +16,16 @@ help: ## Display this help.
 
 ##@ Development
 
-.PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName='PLACEHOLDER' crd webhook paths="./..." output:rbac:artifacts:config=helm/templates output:crd:artifacts:config=helm/crds/
-	sed -i 's/PLACEHOLDER/\{\{ include \"helm.fullname\" \. \}\}-controller/g' helm/templates/role.yaml
-
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-.PHONY: gen-protoc
-gen-protoc: ## Generate protoc code for the echo server.
-	protoc  \
-		--go_out=. \
-		--go_opt=paths=source_relative \
-    --go-grpc_out=. \
-		--go-grpc_opt=paths=source_relative \
-    pkg/echoserver/proto/echo.proto
-
-.PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
-
-.PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
-
 .PHONY: test
-test: manifests generate gen-protoc fmt vet ## Run tests.
-	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./... -cover -count=$(TEST_COUNT) -v -run=$(T)
+test: generate gen_protoc fast_test ## Regenerate proto and run tests.
+
+.PHONY: fast_test
+fast_test:  ## Run tests.
+	LOG_LEVEL=$(LOG_LEVEL) GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json go test ./$(TEST_PKG) -cover -count=$(TEST_COUNT) -v -run="$(T)"
 
 .PHONY: debug_test
-debug_test: manifests generate gen-protoc fmt vet ## Run tests.
-	GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json dlv test ./$(TEST_PKG) -- -test.count=$(TEST_COUNT) -test.v -test.run=$(T)
+debug_test: generate gen_protoc ## Run tests with delve.
+	LOG_LEVEL=$(LOG_LEVEL) GRPC_XDS_BOOTSTRAP=$(PWD)/pkg/echoserver/xds-bootstrap.json dlv test ./$(TEST_PKG) -- -test.count=$(TEST_COUNT) -test.v -test.run="$(T)"
 
 .PHONY: ci_test
 ci_test: ## Run tests without generation.
@@ -61,16 +34,27 @@ ci_test: ## Run tests without generation.
 .PHONY: dev
 dev: create_cluster deploy install_example
 
+CMD ?= ash
+
 .PHONY: client_shell_0
 client_shell_0:
-	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[0].metadata.name}") -- ash
+	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[0].metadata.name}") -- $(CMD)
 
 .PHONY: client_shell_1
 client_shell_1:
-	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[1].metadata.name}") -- ash
+	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[1].metadata.name}") -- $(CMD)
+
+.PHONY: debug_client
+debug_client:
+	GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json dlv debug ./example/cmd/client -- -addr xds:///echo-server/basic coucou
+
+.PHONY: local_client
+local_client:
+	GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json go run ./example/cmd/client -addr xds:///echo-server/basic coucou
+
 
 .PHONY: install_example
-install_example: gen-protoc ## install an example in the current cluster
+install_example: gen_protoc ## install an example in the current cluster
 	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-server
 	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-client
 
@@ -78,6 +62,7 @@ install_example: gen-protoc ## install an example in the current cluster
 create_cluster: ## run a local k3d cluster
 	k3d cluster create \
 		--image="rancher/k3s:$(K3S_VERSION)" \
+		--port "16000:30000@server:0" \
 		--registry-create=kxds-registry.localhost:0.0.0.0:5000 \
 		kxds-dev
 
@@ -89,39 +74,61 @@ delete_cluster: ## Delete the dev cluster
 deploy_crds: ## Deploy the kudo CRDs in dev cluster
 	kubectl apply -f ./helm/crds
 
+
 .PHONY: deploy
-deploy: deploy_crds
+deploy: generate deploy_crds
 	helm template \
 		--values helm/values.yaml \
 		--set image.devRef=ko://github.com/jlevesy/kxds/cmd/controller \
+		--set logLevel=$(LOG_LEVEL) \
 		kxds-dev ./helm | KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -B -t dev -f -
+	kubectl apply -f example/k8s/kxds-nodeport.yaml
 
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build controller binary.
+build: generate  ## Build controller binary.
 	go build -o bin/controller ./cmd/controller
-
-.PHONY: run
-run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/controller
-
-.PHONY: run_local
-run_local:
-	GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json go run ./example/cmd/client --addr xds:///echo-server coucou
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
-## Tool Binaries
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+.PHONY: generate
+generate: gen_protoc codegen gen_manifests
 
-## Tool Versions
-CONTROLLER_TOOLS_VERSION ?= v0.9.2
+.PHONY: gen_protoc
+gen_protoc: ## Generate protoc code for the echo server.
+	protoc  \
+		--go_out=. \
+		--go_opt=paths=source_relative \
+    --go-grpc_out=. \
+		--go-grpc_opt=paths=source_relative \
+    pkg/echoserver/proto/echo.proto
 
-.PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+.PHONY: codegen
+codegen: ## Run code generation for CRDs
+	@bash ${GOPATH}/pkg/mod/k8s.io/code-generator@v$(CODE_GENERATOR_VERSION)/generate-groups.sh \
+		all \
+		github.com/jlevesy/kxds/client \
+		github.com/jlevesy/kxds/api \
+		kxds:v1alpha1 \
+		--go-header-file ./hack/boilerplate.go.txt
+
+.PHONY: gen_manifests
+gen_manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(LOCALBIN)/controller-gen \
+		rbac:roleName='PLACEHOLDER' \
+		crd webhook \
+		paths="./..." \
+		output:rbac:artifacts:config=helm/templates output:crd:artifacts:config=helm/crds/
+	sed -i 's/PLACEHOLDER/\{\{ include \"helm.fullname\" \. \}\}-controller/g' helm/templates/role.yaml
+
+.PHONY: install_code_generator
+install_code_generator: ## Install code generator
+	go install k8s.io/code-generator/cmd/...@v$(CODE_GENERATOR_VERSION)
+
+.PHONY: install_controller_tools
+install_controller_tools: $(LOCALBIN) ## Install controller-tools
+	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)

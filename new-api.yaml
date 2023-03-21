@@ -1,0 +1,186 @@
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: default-backend
+  namespace: echo-server
+spec:
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: method-example
+  namespace: default
+spec:
+  routes:
+    matcher:
+      package: echo # Matches all the calls for the service.
+      # OR
+      service: # Matches all methods of a specific service.
+        package: echo
+        service: Echo
+      # OR
+      method: # Matches only method of a specific service.
+        package: echo
+        service: Echo
+        method: EchoPremium
+      backend:
+        service:
+          name: echo-server-v2
+          port:
+            name: grpc
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: header-example
+  namespace: default
+spec:
+  routes:
+    matcher:
+      headers:
+        name: "x-version"
+        exact: "v2"
+    backend:
+      service:
+        name: echo-server-v2
+        port:
+          name: grpc
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: circuit-breaker-example
+  namespace: default
+spec:
+  routes:
+    matcher:
+      headers:
+        name: "x-version"
+        exact: "v2"
+    backend:
+      maxRequests: 20
+      service:
+        name: echo-server-v2
+        port:
+          name: grpc
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: weighted-service-example
+  namespace: default
+spec:
+  routes:
+    - matcher:
+        package: foo
+      backend:
+        maxRequests: 20
+        localities:
+          - weight: 80
+            service:
+              name: echo-server-v2
+              port:
+                name: grpc
+          - weight: 20
+            service:
+              name: echo-server-v1
+              port:
+                name: grpc
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: global-filters
+  namespace: default
+spec:
+  filters:
+    - fault:
+        abort:
+          header: {}
+          percentage:
+            numerator: 100
+        delay:
+          header: {}
+          percentage:
+            numerator: 100
+  routes:
+    - matcher:
+        package: foo
+      backend:
+        maxRequests: 20
+        localities:
+          - weight: 80
+            service:
+              name: echo-server-v2
+              port:
+                name: grpc
+          - weight: 20
+            service:
+              name: echo-server-v1
+              port:
+                name: grpc
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc
+---
+apiVersion: api.grpctrafficontroller.dev
+kind: GRPCListener
+metadata:
+  name: route-filters
+  namespace: default
+spec:
+  routes:
+    - matcher:
+        package: foo
+      filters:
+        - fault:
+          delay:
+            fixed: 2s
+            percentage:
+              numerator: 50
+      backend:
+        maxRequests: 20
+        localities:
+          - weight: 80
+            service:
+              name: echo-server-v2
+              port:
+                name: grpc
+          - weight: 20
+            service:
+              name: echo-server-v1
+              port:
+                name: grpc
+  defaultBackend:
+    service:
+      name: echo-server-v1
+      port:
+        name: grpc

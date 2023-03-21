@@ -42,10 +42,11 @@ spec:
                     services.
                   properties:
                     localities:
+                      description: Localities is a list of prioritized and weighted
+                        localities for a backend.
                       items:
-                        description: Locality is a logical group of endpoints for
-                          a given cluster. Used for failover mechanisms and weighed
-                          locality round robin.
+                        description: Locality is a weighted and prioritized locality
+                          for a backend.
                         properties:
                           priority:
                             description: Priority of the locality, if defined, all
@@ -54,14 +55,14 @@ spec:
                             format: int32
                             type: integer
                           service:
-                            description: Services is a reference to a kubernetes service.
+                            description: Service is a reference to a kubernetes service.
                             properties:
                               name:
                                 type: string
                               namespace:
                                 type: string
                               port:
-                                description: K8sPort represents a reference to a port.
+                                description: PortRef represents a reference to a port.
                                   This could be done either by number or by name.
                                 maxProperties: 1
                                 properties:
@@ -78,7 +79,6 @@ spec:
                             format: int32
                             type: integer
                         type: object
-                      minItems: 1
                       type: array
                     maxRequests:
                       description: MaxRequests qualifies the maximum number of parallel
@@ -88,28 +88,45 @@ spec:
                     name:
                       description: Name is the name of the Cluster
                       type: string
+                    service:
+                      description: Service is a reference to a k8s service.
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        port:
+                          description: PortRef represents a reference to a port. This
+                            could be done either by number or by name.
+                          maxProperties: 1
+                          properties:
+                            name:
+                              type: string
+                            number:
+                              format: int32
+                              type: integer
+                          type: object
+                      type: object
                   type: object
-                minItems: 1
                 type: array
-              defaultLocality:
-                description: DefaultLocality allows to specify a single locality that
+              defaultCluster:
+                description: DefaulCluster allows to specify a single cluster that
                   will catch all the calls for the given listener.
                 properties:
-                  priority:
-                    description: Priority of the locality, if defined, all entries
-                      must unique for a given priority and priority should be defined
-                      without any gap.
+                  maxRequests:
+                    description: MaxRequests qualifies the maximum number of parallel
+                      requests allowd to the upstream cluster.
                     format: int32
                     type: integer
                   service:
-                    description: Services is a reference to a kubernetes service.
+                    description: Service is a reference to a k8s service.
                     properties:
                       name:
                         type: string
                       namespace:
                         type: string
                       port:
-                        description: K8sPort represents a reference to a port. This
+                        description: PortRef represents a reference to a port. This
                           could be done either by number or by name.
                         maxProperties: 1
                         properties:
@@ -120,11 +137,6 @@ spec:
                             type: integer
                         type: object
                     type: object
-                  weight:
-                    default: 1
-                    description: Weight of the locality, defaults to one.
-                    format: int32
-                    type: integer
                 type: object
               filters:
                 description: Filters represent the list of filters applied in that
@@ -394,7 +406,6 @@ spec:
                           type: object
                       type: object
                   type: object
-                minItems: 1
                 type: array
             type: object
         type: object

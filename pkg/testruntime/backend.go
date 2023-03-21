@@ -5,13 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
 	"github.com/jlevesy/kxds/pkg/echoserver"
 	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 type Backends []Backend
@@ -25,14 +22,6 @@ func StartBackends(cfg Config) (Backends, error) {
 		err      error
 		backends = make([]Backend, cfg.BackendCount)
 	)
-
-	if err = corev1.AddToScheme(scheme.Scheme); err != nil {
-		return nil, err
-	}
-
-	if err = kxdsv1alpha1.AddToScheme(scheme.Scheme); err != nil {
-		return nil, err
-	}
 
 	for id := 0; id < cfg.BackendCount; id++ {
 		backends[id], err = newBackend("backend-" + strconv.Itoa(id))
