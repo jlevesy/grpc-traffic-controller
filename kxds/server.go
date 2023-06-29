@@ -96,19 +96,25 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 		grpcServer, &adsHandler{srv: srv},
 	)
 
-	cfg.KxdsInformers.
+	_, err := cfg.KxdsInformers.
 		Api().
 		V1alpha1().
 		XDSServices().
 		Informer().
 		AddEventHandler(xdsServiceChangedQueue)
+	if err != nil {
+		return nil, err
+	}
 
-	cfg.K8sInformers.
+	_, err = cfg.K8sInformers.
 		Discovery().
 		V1().
 		EndpointSlices().
 		Informer().
 		AddEventHandler(endpointSliceChangedQueue)
+	if err != nil {
+		return nil, err
+	}
 
 	return &XDSServer{
 		xdsServiceChangedQueue:    xdsServiceChangedQueue,

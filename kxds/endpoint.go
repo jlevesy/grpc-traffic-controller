@@ -260,11 +260,3 @@ func derefBool(v *bool) bool {
 
 	return *v
 }
-
-func derefString(v *string) string {
-	if v == nil {
-		return ""
-	}
-
-	return *v
-}

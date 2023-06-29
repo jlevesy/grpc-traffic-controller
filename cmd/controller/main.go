@@ -31,7 +31,6 @@ import (
 	kxdsinformers "github.com/jlevesy/kxds/client/informers/externalversions"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/runtime"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -39,10 +38,6 @@ import (
 
 	kxdsapi "github.com/jlevesy/kxds/client/clientset/versioned"
 	"github.com/jlevesy/kxds/kxds"
-)
-
-var (
-	scheme = runtime.NewScheme()
 )
 
 func main() {
