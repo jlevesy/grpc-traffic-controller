@@ -31,8 +31,10 @@ spec:
           image: {{ include "helm.imageName" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-           - --xds-bind-address
+           - -xds-bind-address
            - ':{{ .Values.service.port }}'
+           - -log-level
+           - {{ .Values.logLevel | quote }}
           ports:
             - name: xds
               containerPort: {{ .Values.service.port }}

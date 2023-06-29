@@ -20,27 +20,46 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// K8sPort represents a reference to a port. This could be done either by number or by name.
+// PortRef represents a reference to a port. This could be done either by number or by name.
 // +kubebuilder:validation:MaxProperties:=1
-type K8sPort struct {
+type PortRef struct {
 	// +optional
 	Number int32 `json:"number,omitempty"`
 	// +optional
 	Name string `json:"name,omitempty"`
 }
 
-// K8sService is a reference to a kubernetes service.
-type K8sService struct {
-	// +kubebuilder:validation:Required
+// ServiceRef is a reference to kubernetes service.
+type ServiceRef struct {
 	Name string `json:"name,omitempty"`
 	// +optional
-	Namespace string `json:"namespace,omitempty"`
-	// +kubebuilder:validation:Required
-	Port K8sPort `json:"port,omitempty"`
+	Namespace string  `json:"namespace,omitempty"`
+	Port      PortRef `json:"port,omitempty"`
 }
 
-// Locality is a logical group of endpoints for a given cluster.
-// Used for failover mechanisms and weighed locality round robin.
+type DefaultCluster struct {
+	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
+	MaxRequests *uint32 `json:"maxRequests,omitempty"`
+	// Service is a reference to a k8s service.
+	// +optional
+	Service *ServiceRef `json:"service,omitempty"`
+}
+
+// Cluster is a group of backend servers serving the same services.
+type Cluster struct {
+	// Name is the name of the Cluster
+	Name string `json:"name,omitempty"`
+	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
+	MaxRequests *uint32 `json:"maxRequests,omitempty"`
+	// Service is a reference to a k8s service.
+	// +optional
+	Service *ServiceRef `json:"service,omitempty"`
+
+	// Localities is a list of prioritized and weighted localities for a backend.
+	Localities []Locality `json:"localities,omitempty"`
+}
+
+// Locality is a weighted and prioritized locality for a backend.
 type Locality struct {
 	// Weight of the locality, defaults to one.
 	// +optional
@@ -49,20 +68,9 @@ type Locality struct {
 	// Priority of the locality, if defined, all entries must unique for a given priority and priority should be defined without any gap.
 	// +optional
 	Priority uint32 `json:"priority,omitempty"`
-	// Services is a reference to a kubernetes service.
+	// Service is a reference to a kubernetes service.
 	// +optional
-	Service *K8sService `json:"service,omitempty"`
-}
-
-// Cluster is a group of backend servers serving the same services.
-type Cluster struct {
-	// Name is the name of the Cluster
-	// +kubebuilder:validation:Required
-	Name string `json:"name,omitempty"`
-	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
-	MaxRequests *uint32 `json:"maxRequests,omitempty"`
-	// +kubebuilder:validation:MinItems:=1
-	Localities []Locality `json:"localities,omitempty"`
+	Service *ServiceRef `json:"service,omitempty"`
 }
 
 // ClusterRef is a reference to a cluter defined in the same manifest.
@@ -207,20 +215,20 @@ type XDSServiceSpec struct {
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
 	// Routes lists all the routes defined for an XDSService.
-	// +kubebuilder:validation:MinItems:=1
 	Routes []Route `json:"routes,omitempty"`
 	// Clusters lists all the clusters defined for an XDSService.
-	// +kubebuilder:validation:MinItems:=1
 	Clusters []Cluster `json:"clusters,omitempty"`
 
-	// DefaultLocality allows to specify a single locality that will catch all the calls for the given listener.
-	DefaultLocality *Locality `json:"defaultLocality,omitempty"`
+	// DefaulCluster allows to specify a single cluster that will catch all the calls for the given listener.
+	DefaultCluster *DefaultCluster `json:"defaultCluster,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // XDSService is the Schema for the services API
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 type XDSService struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -228,15 +236,10 @@ type XDSService struct {
 	Spec XDSServiceSpec `json:"spec,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // ServiceList contains a list of Service
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type XDSServiceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []XDSService `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&XDSService{}, &XDSServiceList{})
 }

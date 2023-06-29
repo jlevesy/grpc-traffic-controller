@@ -17,106 +17,168 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	kxdsinformers "github.com/jlevesy/kxds/client/informers/externalversions"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
+	kubeinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	restclient "k8s.io/client-go/rest"
 
-	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/v1alpha1"
+	kxdsapi "github.com/jlevesy/kxds/client/clientset/versioned"
 	"github.com/jlevesy/kxds/kxds"
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(kxdsv1alpha1.AddToScheme(scheme))
-}
-
 func main() {
 	var (
-		metricsAddr string
-		probeAddr   string
-		xdsAddr     string
+		xdsAddr  string
+		httpAddr string
+		logLevel string
 	)
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.StringVar(&xdsAddr, "xds-bind-address", ":18000", "The address the xds server endpoint binds to.")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
+
+	flag.StringVar(&xdsAddr, "xds-bind-address", ":18000", "The address the xds server binds to.")
+	flag.StringVar(&httpAddr, "http-bind-address", ":8081", "The address the http server binds to.")
+	flag.StringVar(&logLevel, "log-level", "info", "Log Level")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	logger := zap.Must(newLogger(logLevel))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		HealthProbeBindAddress: probeAddr,
-		Port:                   9443,
-	})
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	kubeConfig, err := restclient.InClusterConfig()
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		logger.Error("Can't build kube config", zap.Error(err))
+		return
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		logger.Error("Can't create kubernetes client", zap.Error(err))
+		return
+	}
+
+	kxdsClient, err := kxdsapi.NewForConfig(kubeConfig)
+	if err != nil {
+		logger.Error("Can't create kxds client", zap.Error(err))
+		return
 	}
 
 	var (
-		xdsCache = cache.NewSnapshotCache(
-			false,
-			kxds.DefaultHash,
-			kxds.NewLogger(mgr.GetLogger()),
+		kubeInformerFactory = kubeinformers.NewSharedInformerFactory(
+			kubeClient,
+			60*time.Minute,
 		)
-
-		cacheReconciller = kxds.NewReconciler(
-			mgr.GetClient(),
-			kxds.NewCacheRefresher(xdsCache, kxds.DefautHashKey),
+		kxdsInformerFactory = kxdsinformers.NewSharedInformerFactory(
+			kxdsClient,
+			60*time.Minute,
 		)
 	)
 
-	if err := mgr.Add(kxds.NewXDSServer(xdsCache, kxds.XDSServerConfig{BindAddr: xdsAddr})); err != nil {
-		setupLog.Error(err, "unable to create the xds server")
-		os.Exit(1)
+	server, err := kxds.NewXDSServer(
+		ctx,
+		kxds.XDSServerConfig{
+			BindAddr:      xdsAddr,
+			K8sInformers:  kubeInformerFactory,
+			KxdsInformers: kxdsInformerFactory,
+		},
+		logger,
+	)
+	if err != nil {
+		logger.Error("Can't create kxds server", zap.Error(err))
+		return
 	}
 
-	// Start looking for xds services.
-	if err = ctrl.NewControllerManagedBy(mgr).For(&kxdsv1alpha1.XDSService{}).Complete(cacheReconciller); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "kxdsv1alpha1.XDSService")
-		os.Exit(1)
+	group, ctx := errgroup.WithContext(ctx)
+
+	logger.Info("Starting informers...")
+
+	kxdsInformerFactory.Start(ctx.Done())
+	kubeInformerFactory.Start(ctx.Done())
+
+	group.Go(func() error {
+		return server.Run(ctx)
+	})
+
+	group.Go(func() error {
+		return runWebserver(
+			ctx,
+			httpAddr,
+			logger.With(
+				zap.String("module", "webserver"),
+			),
+		)
+	})
+
+	logger.Info("Running kxds controller")
+
+	if err := group.Wait(); err != nil {
+		logger.Error("Controller reported an error", zap.Error(err))
+		return
 	}
 
-	// Start looking for endpoints.
-	if err = ctrl.NewControllerManagedBy(mgr).For(&corev1.Endpoints{}).Complete(cacheReconciller); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "corev1.Endpoints")
-		os.Exit(1)
+	logger.Info("Kxds controller exited")
+}
+
+func runWebserver(ctx context.Context, addr string, logger *zap.Logger) error {
+	logger.Info("Starting webserver", zap.String("addr", addr))
+
+	serveMux := http.NewServeMux()
+
+	serveMux.HandleFunc("/healthz", func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, _ = rw.Write([]byte("ok"))
+	})
+
+	serveMux.HandleFunc("/readyz", func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		_, _ = rw.Write([]byte("ok"))
+	})
+
+	srv := &http.Server{
+		Addr:           addr,
+		Handler:        serveMux,
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   5 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1048576
 	}
 
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
+	go func() {
+		<-ctx.Done()
+
+		logger.Info("Shutting down webserver")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			logger.Error("Shutdown reported an error, closing the server", zap.Error(err))
+
+			_ = srv.Close()
+		}
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
 	}
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
+	return nil
+}
+
+func newLogger(lvl string) (*zap.Logger, error) {
+	if lvl == "debug" {
+		return zap.NewDevelopment()
 	}
+
+	return zap.NewProduction()
 }

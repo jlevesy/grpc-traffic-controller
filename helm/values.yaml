@@ -1,4 +1,5 @@
 replicaCount: 1
+logLevel: info
 
 image:
   repository: ghcr.io/jlevesy/kxds/controller
@@ -44,5 +45,4 @@ resources:
 nodeSelector: {}
 
 tolerations: []
-
 affinity: {}
