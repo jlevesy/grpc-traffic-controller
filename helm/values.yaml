@@ -2,7 +2,7 @@ replicaCount: 1
 logLevel: info
 
 image:
-  repository: ghcr.io/jlevesy/kxds/controller
+  repository: ghcr.io/jlevesy/grpc-traffic-controller/controller
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

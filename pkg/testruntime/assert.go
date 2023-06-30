@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
+	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 )
 
 func MultiAssert(asserts ...func(t *testing.T, callCtx *CallContext)) func(t *testing.T, callCtx *CallContext) {

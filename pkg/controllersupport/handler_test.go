@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jlevesy/kxds/pkg/controllersupport"
-	"github.com/jlevesy/kxds/pkg/testruntime"
+	"github.com/jlevesy/grpc-traffic-controller/pkg/controllersupport"
+	"github.com/jlevesy/grpc-traffic-controller/pkg/testruntime"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )

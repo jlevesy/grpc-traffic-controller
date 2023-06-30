@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jlevesy/kxds/pkg/echoserver"
-	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
+	"github.com/jlevesy/grpc-traffic-controller/pkg/echoserver"
+	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

@@ -24,7 +24,7 @@ spec:
     spec:
       serviceAccountName: echo-client
       initContainers:
-        - image: ko://github.com/jlevesy/kxds/cmd/bootstrapgen
+        - image: ko://github.com/jlevesy/grpc-traffic-controller/cmd/bootstrapgen
           imagePullPolicy: Always
           name: gen-bootstrap
           args:
@@ -36,7 +36,7 @@ spec:
             - name: xds-bootstrap
               mountPath: /mnt/client
       containers:
-        - image: ko://github.com/jlevesy/kxds/example/cmd/client
+        - image: ko://github.com/jlevesy/grpc-traffic-controller/example/cmd/client
           imagePullPolicy: Always
           name: echo-client
           command: ["sleep","infinity"]

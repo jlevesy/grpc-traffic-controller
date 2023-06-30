@@ -4,8 +4,8 @@ import (
 	"context"
 
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
-	kxdslisters "github.com/jlevesy/kxds/client/listers/kxds/v1alpha1"
+	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
 	"go.uber.org/zap"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

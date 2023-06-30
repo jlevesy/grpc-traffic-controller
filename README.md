@@ -1,6 +1,6 @@
-# KxDS
+# gTC: gRPC Traffic Controller
 
-KxDS is an xDS control plane for gRPC xDS service discovery. It is a kubernetes controller that reads service definition through a `Service` custom resources.
+gRPC Traffic Controller (or gTC) is a Kubernetes controller that allows through a simple manifest to set up and describe routing configuration between gRPC clients and servers. It provides confiuguration to the clients using the gRPC xDS service discovery integration available in most of the major gRPC distributions.
 
 ## Usage Examples
 
@@ -8,9 +8,9 @@ See [the example setup](./example/k8s/echo-server/1-grpc-service.yaml).
 
 ## Current Status
 
-This is mostly a toy project at the moment.
+I'm currently rebuilding this API.
 
-xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), the table tracks their support in kXDS.
+xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), the table tracks their support in gTC.
 
 | gRFC  | Status |
 | ------------- | ------------- |
@@ -24,7 +24,7 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | [A29](https://github.com/grpc/proposal/blob/master/A29-xds-tls-security.md)  | TODO |
 | [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO |
 | [A36](https://github.com/grpc/proposal/blob/master/A36-xds-for-servers.md)  | TODO |
-| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO, Not directly related but it highlight the need of supporting CSDS on KxDS's end? |
+| [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO, Not directly related but it highlight the need of supporting CSDS on gTC's end? |
 | [A39](https://github.com/grpc/proposal/blob/master/A39-xds-http-filters.md)  | TODO |
 
 - I indend to suport xDS enabled gRPC servers, yet it might require a slight API change, or even a new CRD. More thinking is needed here.
@@ -34,7 +34,7 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 
 ### Required Tools
 
-- [go1.19](https://go.dev/learn/)
+- [go1.20](https://go.dev/learn/)
 - [k3d](https://github.com/k3d-io/k3d)
 - [ko](https://github.com/google/ko)
 - [helm](https://helm.sh/)
@@ -49,7 +49,7 @@ make dev
 This command:
 
 1. Creates a k3d cluster
-2. Installs the kxds controller
+2. Installs the gTC controller
 3. Deploy an example server
 4. Deploys an example client.
 

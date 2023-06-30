@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
+	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 )
 
 type Server struct {

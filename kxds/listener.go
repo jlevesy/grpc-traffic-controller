@@ -9,7 +9,7 @@ import (
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	anyv1 "github.com/golang/protobuf/ptypes/any"
-	kxdslisters "github.com/jlevesy/kxds/client/listers/kxds/v1alpha1"
+	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
 )
 
 type listenerHandler struct {

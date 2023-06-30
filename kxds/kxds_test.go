@@ -13,9 +13,9 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
-	"github.com/jlevesy/kxds/kxds"
-	"github.com/jlevesy/kxds/pkg/testruntime"
+	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	"github.com/jlevesy/grpc-traffic-controller/kxds"
+	"github.com/jlevesy/grpc-traffic-controller/pkg/testruntime"
 )
 
 const (

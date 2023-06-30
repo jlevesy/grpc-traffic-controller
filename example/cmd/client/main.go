@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	_ "google.golang.org/grpc/xds"
 
-	echo "github.com/jlevesy/kxds/pkg/echoserver/proto"
+	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 )
 
 type metadataArgs map[string]string

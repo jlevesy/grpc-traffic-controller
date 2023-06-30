@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/jlevesy/kxds/client/clientset/versioned"
-	internalinterfaces "github.com/jlevesy/kxds/client/informers/externalversions/internalinterfaces"
-	kxds "github.com/jlevesy/kxds/client/informers/externalversions/kxds"
+	versioned "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned"
+	internalinterfaces "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/internalinterfaces"
+	kxds "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/kxds"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
