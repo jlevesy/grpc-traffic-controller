@@ -5,7 +5,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	kxds "github.com/jlevesy/kxds/api/kxds"
+	kxds "github.com/jlevesy/grpc-traffic-controller/api/kxds"
 )
 
 const Version = "v1alpha1"

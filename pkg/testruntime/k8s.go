@@ -16,9 +16,9 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
-	kxdsfake "github.com/jlevesy/kxds/client/clientset/versioned/fake"
-	kxdsinformers "github.com/jlevesy/kxds/client/informers/externalversions"
+	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	kxdsfake "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/fake"
+	kxdsinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
 	"github.com/stretchr/testify/require"
 )
 

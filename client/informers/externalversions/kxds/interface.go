@@ -19,8 +19,8 @@ limitations under the License.
 package kxds
 
 import (
-	internalinterfaces "github.com/jlevesy/kxds/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/jlevesy/kxds/client/informers/externalversions/kxds/v1alpha1"
+	internalinterfaces "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/kxds/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

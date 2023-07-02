@@ -28,7 +28,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
-	kxdsinformers "github.com/jlevesy/kxds/client/informers/externalversions"
+	kxdsinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	kubeinformers "k8s.io/client-go/informers"
@@ -36,8 +36,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	restclient "k8s.io/client-go/rest"
 
-	kxdsapi "github.com/jlevesy/kxds/client/clientset/versioned"
-	"github.com/jlevesy/kxds/kxds"
+	kxdsapi "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned"
+	"github.com/jlevesy/grpc-traffic-controller/kxds"
 )
 
 func main() {

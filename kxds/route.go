@@ -8,7 +8,7 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
+	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 

@@ -1,4 +1,4 @@
-module github.com/jlevesy/kxds
+module github.com/jlevesy/grpc-traffic-controller
 
 go 1.20
 

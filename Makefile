@@ -79,7 +79,7 @@ deploy_crds: ## Deploy the kudo CRDs in dev cluster
 deploy: generate deploy_crds
 	helm template \
 		--values helm/values.yaml \
-		--set image.devRef=ko://github.com/jlevesy/kxds/cmd/controller \
+		--set image.devRef=ko://github.com/jlevesy/grpc-traffic-controller/cmd/controller \
 		--set logLevel=$(LOG_LEVEL) \
 		kxds-dev ./helm | KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -B -t dev -f -
 	kubectl apply -f example/k8s/kxds-nodeport.yaml
@@ -111,8 +111,8 @@ gen_protoc: ## Generate protoc code for the echo server.
 codegen: ## Run code generation for CRDs
 	@bash ${GOPATH}/pkg/mod/k8s.io/code-generator@v$(CODE_GENERATOR_VERSION)/generate-groups.sh \
 		all \
-		github.com/jlevesy/kxds/client \
-		github.com/jlevesy/kxds/api \
+		github.com/jlevesy/grpc-traffic-controller/client \
+		github.com/jlevesy/grpc-traffic-controller/api \
 		kxds:v1alpha1 \
 		--go-header-file ./hack/boilerplate.go.txt
 

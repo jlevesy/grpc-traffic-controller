@@ -18,7 +18,7 @@ spec:
     spec:
       serviceAccountName: echo-server
       containers:
-      - image: ko://github.com/jlevesy/kxds/example/cmd/server
+      - image: ko://github.com/jlevesy/grpc-traffic-controller/example/cmd/server
         imagePullPolicy: Always
         env:
           - name: GRPC_GO_LOG_VERBOSITY_LEVEL

@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
+	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
 )
 
 func makeDuration(duration *kmetav1.Duration) *durationpb.Duration {

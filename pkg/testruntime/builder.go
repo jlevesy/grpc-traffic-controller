@@ -3,7 +3,7 @@ package testruntime
 import (
 	"time"
 
-	kxdsv1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
+	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

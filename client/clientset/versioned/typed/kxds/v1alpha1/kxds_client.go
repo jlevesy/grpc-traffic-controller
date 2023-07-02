@@ -21,8 +21,8 @@ package v1alpha1
 import (
 	"net/http"
 
-	v1alpha1 "github.com/jlevesy/kxds/api/kxds/v1alpha1"
-	"github.com/jlevesy/kxds/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	"github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
