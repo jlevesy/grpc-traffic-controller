@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"errors"
@@ -8,8 +8,8 @@ import (
 	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	anyv1 "github.com/golang/protobuf/ptypes/any"
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
-	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
+	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	kdiscoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -18,7 +18,7 @@ import (
 )
 
 type endpointHandler struct {
-	xdsServices    kxdslisters.XDSServiceLister
+	xdsServices    gtclisters.XDSServiceLister
 	endpointSlices discoveryv1listers.EndpointSliceLister
 }
 
@@ -71,7 +71,7 @@ func (h *endpointHandler) resolveResource(req resolveRequest) (*resolveResponse,
 	return &response, nil
 }
 
-func (h *endpointHandler) makeLoadAssignment(svc *kxdsv1alpha1.XDSService, clusterSpec kxdsv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeLoadAssignment(svc *gtcv1alpha1.XDSService, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	switch {
 	case clusterSpec.Service != nil:
 		return h.makeServiceLoadAssignment(svc, clusterSpec)
@@ -82,7 +82,7 @@ func (h *endpointHandler) makeLoadAssignment(svc *kxdsv1alpha1.XDSService, clust
 	}
 }
 
-func (h *endpointHandler) makeLocalitiesLoadAssignment(svc *kxdsv1alpha1.XDSService, clusterSpec kxdsv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeLocalitiesLoadAssignment(svc *gtcv1alpha1.XDSService, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	var (
 		result = endpoint.ClusterLoadAssignment{
 			ClusterName: clusterName(svc.Namespace, svc.Name, clusterSpec.Name),
@@ -127,7 +127,7 @@ func (h *endpointHandler) makeLocalitiesLoadAssignment(svc *kxdsv1alpha1.XDSServ
 	return &result, versions, nil
 }
 
-func (h *endpointHandler) makeServiceLoadAssignment(svc *kxdsv1alpha1.XDSService, clusterSpec kxdsv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeServiceLoadAssignment(svc *gtcv1alpha1.XDSService, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	result := endpoint.ClusterLoadAssignment{
 		ClusterName: clusterName(svc.Namespace, svc.Name, clusterSpec.Name),
 	}
@@ -169,7 +169,7 @@ func (h *endpointHandler) makeServiceLoadAssignment(svc *kxdsv1alpha1.XDSService
 	return &result, versions, nil
 }
 
-func makeFlatLocalityLbEndpoints(svcRef kxdsv1alpha1.ServiceRef, epSlices []*kdiscoveryv1.EndpointSlice, weight, priority uint32) (*endpoint.LocalityLbEndpoints, error) {
+func makeFlatLocalityLbEndpoints(svcRef gtcv1alpha1.ServiceRef, epSlices []*kdiscoveryv1.EndpointSlice, weight, priority uint32) (*endpoint.LocalityLbEndpoints, error) {
 	var xdsEndpoints []*endpoint.LbEndpoint
 
 	for _, epSlice := range epSlices {
@@ -232,7 +232,7 @@ func makeLbEndpoint(ep kdiscoveryv1.Endpoint, addr string, port uint32) *endpoin
 	}
 }
 
-func lookupK8sPort(k8sSvc kxdsv1alpha1.PortRef, epPorts []kdiscoveryv1.EndpointPort) (uint32, bool) {
+func lookupK8sPort(k8sSvc gtcv1alpha1.PortRef, epPorts []kdiscoveryv1.EndpointPort) (uint32, bool) {
 	if k8sSvc.Name != "" {
 		for _, p := range epPorts {
 			if p.Name != nil && p.Port != nil && *p.Name == k8sSvc.Name {

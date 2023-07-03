@@ -3,7 +3,7 @@
 ---
 # Basic example using defaultCluster
 # Listener address: xds:///echo-server/default-cluster
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: default-cluster
@@ -17,7 +17,7 @@ spec:
 ---
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: basic
@@ -35,7 +35,7 @@ spec:
 ---
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic-v2
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: basic-v2
@@ -54,7 +54,7 @@ spec:
 # Locality based Weighted Round Robin: This example makes all gRPC clients using this listener send 20% of their traffic to
 # the v2 instance of the echo-server, and 80% to the v1 instance.
 # Listener address: xds:///echo-server/locality-wrr
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: locality-wrr
@@ -80,7 +80,7 @@ spec:
 # Locality fallback: This example makes all gRPC clients using this listener send 100% the the `echo-server-v2` service
 # but fall back to the v1 instance if the v2 service goes down.
 # Listener address: xds:///echo-server/fallback
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: fallback
@@ -107,7 +107,7 @@ spec:
 # https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md
 ---
 # Path based routing: Route calls to premium service RPC to the echo-server v2
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: path-matcher
@@ -133,7 +133,7 @@ spec:
           name: grpc
 ---
 # Path Prefix based routing: Route calls to premium service RPC to the echo-server v2
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: prefix-matcher
@@ -159,7 +159,7 @@ spec:
           name: grpc
 ---
 # Regex Prefix based routing: Route calls to premium service RPC to the echo-server v2
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: regex-matcher
@@ -187,7 +187,7 @@ spec:
           name: grpc
 ---
 # Header based routing: Route calls v2 if header "x-version" has the value "v2"
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: header-exact-matcher
@@ -214,7 +214,7 @@ spec:
           name: grpc
 ---
 # Fractional traffic splitting: 20% of calls go v2 the other 80% hit v1
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: fractional-route-matcher
@@ -240,7 +240,7 @@ spec:
           name: grpc
 ---
 # Circuit breaker.
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: circuit-breaker
@@ -259,7 +259,7 @@ spec:
 
 ---
 # Delay Injection filter fixed
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: delay-fault-injection
@@ -282,7 +282,7 @@ spec:
           name: grpc
 ---
 # Fault Injection filter metadata
-apiVersion: api.kxds.dev/v1alpha1
+apiVersion: api.gtc.dev/v1alpha1
 kind: XDSService
 metadata:
   name: fault-injection-header

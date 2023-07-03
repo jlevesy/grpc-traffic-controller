@@ -16,9 +16,9 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
-	kxdsfake "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/fake"
-	kxdsinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
+	gtcfake "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/fake"
+	gtcinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,17 +26,17 @@ type FakeK8s struct {
 	K8s          *kubefake.Clientset
 	K8sInformers kubeinformers.SharedInformerFactory
 
-	KxdsApi       *kxdsfake.Clientset
-	KxdsInformers kxdsinformers.SharedInformerFactory
+	GTCApi       *gtcfake.Clientset
+	GTCInformers gtcinformers.SharedInformerFactory
 }
 
-func NewFakeK8s(t *testing.T, xdsServices []kxdsv1alpha1.XDSService, endpointSlices []discoveryv1.EndpointSlice) FakeK8s {
+func NewFakeK8s(t *testing.T, xdsServices []gtcv1alpha1.XDSService, endpointSlices []discoveryv1.EndpointSlice) FakeK8s {
 	t.Helper()
 
 	var (
-		kxdsClientSet = kxdsfake.NewSimpleClientset(xdsServicesToRuntimeObjects(xdsServices)...)
-		kxdsInformers = kxdsinformers.NewSharedInformerFactory(
-			kxdsClientSet,
+		gtcClientSet = gtcfake.NewSimpleClientset(xdsServicesToRuntimeObjects(xdsServices)...)
+		gtcInformers = gtcinformers.NewSharedInformerFactory(
+			gtcClientSet,
 			60*time.Second,
 		)
 		k8sClientSet = kubefake.NewSimpleClientset(endpointSlicesToRuntimeObjects(endpointSlices)...)
@@ -47,10 +47,10 @@ func NewFakeK8s(t *testing.T, xdsServices []kxdsv1alpha1.XDSService, endpointSli
 	)
 
 	return FakeK8s{
-		K8s:           k8sClientSet,
-		K8sInformers:  k8sInformers,
-		KxdsApi:       kxdsClientSet,
-		KxdsInformers: kxdsInformers,
+		K8s:          k8sClientSet,
+		K8sInformers: k8sInformers,
+		GTCApi:       gtcClientSet,
+		GTCInformers: gtcInformers,
 	}
 }
 
@@ -58,12 +58,12 @@ func (f *FakeK8s) Start(ctx context.Context, t *testing.T) {
 	t.Helper()
 
 	f.K8sInformers.Start(ctx.Done())
-	f.KxdsInformers.Start(ctx.Done())
+	f.GTCInformers.Start(ctx.Done())
 
 	err := checkInformerSync(f.K8sInformers.WaitForCacheSync(ctx.Done()))
 	require.NoError(t, err)
 
-	err = checkInformerSync(f.KxdsInformers.WaitForCacheSync(ctx.Done()))
+	err = checkInformerSync(f.GTCInformers.WaitForCacheSync(ctx.Done()))
 	require.NoError(t, err)
 }
 
@@ -130,7 +130,7 @@ func buildEndpointSlice(id int, name, namespace string, backend Backend) discove
 	}
 }
 
-func xdsServicesToRuntimeObjects(xdsServices []kxdsv1alpha1.XDSService) []runtime.Object {
+func xdsServicesToRuntimeObjects(xdsServices []gtcv1alpha1.XDSService) []runtime.Object {
 	res := make([]runtime.Object, len(xdsServices))
 
 	for i, s := range xdsServices {

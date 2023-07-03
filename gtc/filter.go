@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"errors"
@@ -8,12 +8,12 @@ import (
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func makeFilters(filters []kxdsv1alpha1.Filter) ([]*hcm.HttpFilter, error) {
+func makeFilters(filters []gtcv1alpha1.Filter) ([]*hcm.HttpFilter, error) {
 	routerFilter := &hcm.HttpFilter{
 		Name: wellknown.Router,
 		ConfigType: &hcm.HttpFilter_TypedConfig{
@@ -44,7 +44,7 @@ func makeFilters(filters []kxdsv1alpha1.Filter) ([]*hcm.HttpFilter, error) {
 	return hcmFilters, nil
 }
 
-func makeFilter(filter kxdsv1alpha1.Filter) (*hcm.HttpFilter, error) {
+func makeFilter(filter gtcv1alpha1.Filter) (*hcm.HttpFilter, error) {
 	switch {
 	case filter.Fault != nil:
 		faultFilter, err := makeFaultFilter(filter.Fault)
@@ -63,7 +63,7 @@ func makeFilter(filter kxdsv1alpha1.Filter) (*hcm.HttpFilter, error) {
 	}
 }
 
-func makeFaultFilter(f *kxdsv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
+func makeFaultFilter(f *gtcv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
 	var ff faultv3.HTTPFault
 
 	if f.Delay != nil {

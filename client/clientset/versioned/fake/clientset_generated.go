@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned"
-	apiv1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/typed/kxds/v1alpha1"
-	fakeapiv1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/typed/kxds/v1alpha1/fake"
+	apiv1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/typed/gtc/v1alpha1"
+	fakeapiv1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/typed/gtc/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

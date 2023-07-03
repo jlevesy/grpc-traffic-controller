@@ -26,9 +26,7 @@ import (
 	"syscall"
 	"time"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	kxdsinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
+	gtcinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	kubeinformers "k8s.io/client-go/informers"
@@ -36,8 +34,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	restclient "k8s.io/client-go/rest"
 
-	kxdsapi "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned"
-	"github.com/jlevesy/grpc-traffic-controller/kxds"
+	gtcapi "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned"
+	"github.com/jlevesy/grpc-traffic-controller/gtc"
 )
 
 func main() {
@@ -69,9 +67,9 @@ func main() {
 		return
 	}
 
-	kxdsClient, err := kxdsapi.NewForConfig(kubeConfig)
+	gtcClient, err := gtcapi.NewForConfig(kubeConfig)
 	if err != nil {
-		logger.Error("Can't create kxds client", zap.Error(err))
+		logger.Error("Can't create gtc client", zap.Error(err))
 		return
 	}
 
@@ -80,23 +78,23 @@ func main() {
 			kubeClient,
 			60*time.Minute,
 		)
-		kxdsInformerFactory = kxdsinformers.NewSharedInformerFactory(
-			kxdsClient,
+		gtcInformerFactory = gtcinformers.NewSharedInformerFactory(
+			gtcClient,
 			60*time.Minute,
 		)
 	)
 
-	server, err := kxds.NewXDSServer(
+	server, err := gtc.NewXDSServer(
 		ctx,
-		kxds.XDSServerConfig{
-			BindAddr:      xdsAddr,
-			K8sInformers:  kubeInformerFactory,
-			KxdsInformers: kxdsInformerFactory,
+		gtc.XDSServerConfig{
+			BindAddr:     xdsAddr,
+			K8sInformers: kubeInformerFactory,
+			GTCInformers: gtcInformerFactory,
 		},
 		logger,
 	)
 	if err != nil {
-		logger.Error("Can't create kxds server", zap.Error(err))
+		logger.Error("Can't create gtc server", zap.Error(err))
 		return
 	}
 
@@ -104,7 +102,7 @@ func main() {
 
 	logger.Info("Starting informers...")
 
-	kxdsInformerFactory.Start(ctx.Done())
+	gtcInformerFactory.Start(ctx.Done())
 	kubeInformerFactory.Start(ctx.Done())
 
 	group.Go(func() error {
@@ -121,14 +119,14 @@ func main() {
 		)
 	})
 
-	logger.Info("Running kxds controller")
+	logger.Info("Running gRPC Traffic controller")
 
 	if err := group.Wait(); err != nil {
 		logger.Error("Controller reported an error", zap.Error(err))
 		return
 	}
 
-	logger.Info("Kxds controller exited")
+	logger.Info("gRPC Traffic controller exited")
 }
 
 func runWebserver(ctx context.Context, addr string, logger *zap.Logger) error {

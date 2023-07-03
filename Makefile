@@ -1,5 +1,5 @@
 TEST_COUNT?=1
-TEST_PKG?=kxds
+TEST_PKG?=gtc
 K3S_VERSION?=v1.25.0-k3s1
 CODE_GENERATOR_VERSION=0.26.3
 CONTROLLER_TOOLS_VERSION=0.9.2
@@ -55,20 +55,20 @@ local_client:
 
 .PHONY: install_example
 install_example: gen_protoc ## install an example in the current cluster
-	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-server
-	KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -f ./example/k8s/echo-client
+	KO_DOCKER_REPO=gtc-registry.localhost:5000 ko apply -f ./example/k8s/echo-server
+	KO_DOCKER_REPO=gtc-registry.localhost:5000 ko apply -f ./example/k8s/echo-client
 
 .PHONY: create_cluster
 create_cluster: ## run a local k3d cluster
 	k3d cluster create \
 		--image="rancher/k3s:$(K3S_VERSION)" \
 		--port "16000:30000@server:0" \
-		--registry-create=kxds-registry.localhost:0.0.0.0:5000 \
-		kxds-dev
+		--registry-create=gtc-registry.localhost:0.0.0.0:5000 \
+		gtc-dev
 
 .PHONY: delete_cluster
 delete_cluster: ## Delete the dev cluster
-	k3d cluster delete kxds-dev
+	k3d cluster delete gtc-dev
 
 .PHONY: deploy_crds
 deploy_crds: ## Deploy the kudo CRDs in dev cluster
@@ -81,8 +81,8 @@ deploy: generate deploy_crds
 		--values helm/values.yaml \
 		--set image.devRef=ko://github.com/jlevesy/grpc-traffic-controller/cmd/controller \
 		--set logLevel=$(LOG_LEVEL) \
-		kxds-dev ./helm | KO_DOCKER_REPO=kxds-registry.localhost:5000 ko apply -B -t dev -f -
-	kubectl apply -f example/k8s/kxds-nodeport.yaml
+		gtc-dev ./helm | KO_DOCKER_REPO=gtc-registry.localhost:5000 ko apply -B -t dev -f -
+	kubectl apply -f example/k8s/gtc-nodeport.yaml
 
 ##@ Build
 
@@ -113,7 +113,7 @@ codegen: ## Run code generation for CRDs
 		all \
 		github.com/jlevesy/grpc-traffic-controller/client \
 		github.com/jlevesy/grpc-traffic-controller/api \
-		kxds:v1alpha1 \
+		gtc:v1alpha1 \
 		--go-header-file ./hack/boilerplate.go.txt
 
 .PHONY: gen_manifests

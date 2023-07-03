@@ -5,13 +5,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	kxds "github.com/jlevesy/grpc-traffic-controller/api/kxds"
+	gtc "github.com/jlevesy/grpc-traffic-controller/api/gtc"
 )
 
 const Version = "v1alpha1"
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: kxds.GroupName, Version: Version}
+var SchemeGroupVersion = schema.GroupVersion{Group: gtc.GroupName, Version: Version}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) schema.GroupKind {

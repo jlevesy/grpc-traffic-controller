@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"errors"
@@ -8,11 +8,11 @@ import (
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func makeRouteConfig(listenerName string, svc *kxdsv1alpha1.XDSService) (*route.RouteConfiguration, error) {
+func makeRouteConfig(listenerName string, svc *gtcv1alpha1.XDSService) (*route.RouteConfiguration, error) {
 	var (
 		routeSpecs = svc.Spec.Routes
 		routesLen  = len(svc.Spec.Routes)
@@ -21,9 +21,9 @@ func makeRouteConfig(listenerName string, svc *kxdsv1alpha1.XDSService) (*route.
 	// If the service has no route, then populate a default one that points to the default clusterRef.
 	if len(svc.Spec.Routes) == 0 {
 		routesLen = 1
-		routeSpecs = []kxdsv1alpha1.Route{
+		routeSpecs = []gtcv1alpha1.Route{
 			{
-				Clusters: []kxdsv1alpha1.ClusterRef{
+				Clusters: []gtcv1alpha1.ClusterRef{
 					{Name: "default", Weight: 1},
 				},
 			},
@@ -67,7 +67,7 @@ func makeRouteConfig(listenerName string, svc *kxdsv1alpha1.XDSService) (*route.
 	}, nil
 }
 
-func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
+func makeRouteMatch(spec gtcv1alpha1.Route) (*route.RouteMatch, error) {
 	var match route.RouteMatch
 
 	switch {
@@ -117,7 +117,7 @@ func makeRouteMatch(spec kxdsv1alpha1.Route) (*route.RouteMatch, error) {
 	return &match, nil
 }
 
-func makeHeaderMatcher(spec kxdsv1alpha1.HeaderMatcher) (*route.HeaderMatcher, error) {
+func makeHeaderMatcher(spec gtcv1alpha1.HeaderMatcher) (*route.HeaderMatcher, error) {
 	matcher := route.HeaderMatcher{
 		Name:        spec.Name,
 		InvertMatch: spec.Invert,
@@ -164,7 +164,7 @@ func makeHeaderMatcher(spec kxdsv1alpha1.HeaderMatcher) (*route.HeaderMatcher, e
 	return &matcher, nil
 }
 
-func makeRegexMatcher(spec *kxdsv1alpha1.RegexMatcher) (*matcher.RegexMatcher, error) {
+func makeRegexMatcher(spec *gtcv1alpha1.RegexMatcher) (*matcher.RegexMatcher, error) {
 	if spec.Engine != "re2" {
 		return nil, fmt.Errorf("unsupported engine %q", spec.Engine)
 	}
@@ -181,7 +181,7 @@ func makeRegexMatcher(spec *kxdsv1alpha1.RegexMatcher) (*matcher.RegexMatcher, e
 	}, nil
 }
 
-func makeWeightedClusters(namespace, name string, routeSpec kxdsv1alpha1.Route) *route.WeightedCluster {
+func makeWeightedClusters(namespace, name string, routeSpec gtcv1alpha1.Route) *route.WeightedCluster {
 	var (
 		totalWeight     uint32
 		weighedClusters = make([]*route.WeightedCluster_ClusterWeight, len(routeSpec.Clusters))

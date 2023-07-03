@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"crypto/sha256"
@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 )
 
 func makeDuration(duration *kmetav1.Duration) *durationpb.Duration {
@@ -35,7 +35,7 @@ func mustAny(msg protoreflect.ProtoMessage) *anypb.Any {
 	return p
 }
 
-func makeFractionalPercent(p *kxdsv1alpha1.Fraction) (*typev3.FractionalPercent, error) {
+func makeFractionalPercent(p *gtcv1alpha1.Fraction) (*typev3.FractionalPercent, error) {
 	denominator, ok := typev3.FractionalPercent_DenominatorType_value[strings.ToUpper(p.Denominator)]
 	if !ok {
 		return nil, fmt.Errorf(

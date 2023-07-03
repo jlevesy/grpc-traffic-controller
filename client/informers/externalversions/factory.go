@@ -24,8 +24,8 @@ import (
 	time "time"
 
 	versioned "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned"
+	gtc "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/gtc"
 	internalinterfaces "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/internalinterfaces"
-	kxds "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/kxds"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -243,9 +243,9 @@ type SharedInformerFactory interface {
 	// client.
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
-	Api() kxds.Interface
+	Api() gtc.Interface
 }
 
-func (f *sharedInformerFactory) Api() kxds.Interface {
-	return kxds.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Api() gtc.Interface {
+	return gtc.New(f, f.namespace, f.tweakListOptions)
 }

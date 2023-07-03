@@ -1,4 +1,4 @@
-package kxds_test
+package gtc_test
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
-	"github.com/jlevesy/grpc-traffic-controller/kxds"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
+	"github.com/jlevesy/grpc-traffic-controller/gtc"
 	"github.com/jlevesy/grpc-traffic-controller/pkg/testruntime"
 )
 
@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	grpcPort = kxdsv1alpha1.PortRef{
+	grpcPort = gtcv1alpha1.PortRef{
 		Name: "grpc",
 	}
 
@@ -33,7 +33,7 @@ var (
 		testruntime.BuildCluster(
 			"v2",
 			testruntime.WithServiceRef(
-				kxdsv1alpha1.ServiceRef{
+				gtcv1alpha1.ServiceRef{
 					Name: serviceNameV2,
 					Port: grpcPort,
 				},
@@ -42,7 +42,7 @@ var (
 		testruntime.BuildCluster(
 			"v1",
 			testruntime.WithServiceRef(
-				kxdsv1alpha1.ServiceRef{
+				gtcv1alpha1.ServiceRef{
 					Name: serviceNameV1,
 					Port: grpcPort,
 				},
@@ -56,7 +56,7 @@ func TestServer(t *testing.T) {
 		desc                string
 		backendCount        int
 		buildEndpointSlices func(backends []testruntime.Backend) []discoveryv1.EndpointSlice
-		buildXDSServices    func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService
+		buildXDSServices    func(backends []testruntime.Backend) []gtcv1alpha1.XDSService
 		buildCallContext    func(t *testing.T) *testruntime.CallContext
 		setBackendsBehavior func(t *testing.T, bs testruntime.Backends)
 		doAssertPreUpdate   func(t *testing.T, callCtx *testruntime.CallContext)
@@ -73,8 +73,8 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -85,7 +85,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -119,8 +119,8 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -131,9 +131,9 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
-										Port: kxdsv1alpha1.PortRef{
+										Port: gtcv1alpha1.PortRef{
 											Number: backends[0].PortNumber(),
 										},
 									},
@@ -167,15 +167,15 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
 						testruntime.WithDefaultCluster(
 							testruntime.BuildDefaultCluster(
 								testruntime.WithDefaultServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -209,8 +209,8 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -221,7 +221,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name:      serviceNameV1,
 										Namespace: "some-app",
 										Port:      grpcPort,
@@ -255,8 +255,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices("test-service-v2", "default", backends[2:4]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -270,7 +270,7 @@ func TestServer(t *testing.T) {
 									testruntime.BuildLocality(
 										testruntime.WithLocalityWeight(80),
 										testruntime.WithLocalityServiceRef(
-											kxdsv1alpha1.ServiceRef{
+											gtcv1alpha1.ServiceRef{
 												Name: "test-service",
 												Port: grpcPort,
 											},
@@ -279,7 +279,7 @@ func TestServer(t *testing.T) {
 									testruntime.BuildLocality(
 										testruntime.WithLocalityWeight(20),
 										testruntime.WithLocalityServiceRef(
-											kxdsv1alpha1.ServiceRef{
+											gtcv1alpha1.ServiceRef{
 												Name: "test-service-v2",
 												Port: grpcPort,
 											},
@@ -321,8 +321,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices("test-service-v2", "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -336,7 +336,7 @@ func TestServer(t *testing.T) {
 									testruntime.BuildLocality(
 										testruntime.WithLocalityPriority(0),
 										testruntime.WithLocalityServiceRef(
-											kxdsv1alpha1.ServiceRef{
+											gtcv1alpha1.ServiceRef{
 												Name: "test-service",
 												Port: grpcPort,
 											},
@@ -345,7 +345,7 @@ func TestServer(t *testing.T) {
 									testruntime.BuildLocality(
 										testruntime.WithLocalityPriority(1),
 										testruntime.WithLocalityServiceRef(
-											kxdsv1alpha1.ServiceRef{
+											gtcv1alpha1.ServiceRef{
 												Name: "test-service-v2",
 												Port: grpcPort,
 											},
@@ -383,20 +383,20 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
 							testruntime.BuildRoute(
 								testruntime.WithPathMatcher(
-									kxdsv1alpha1.PathMatcher{
+									gtcv1alpha1.PathMatcher{
 										Path: "/echo.Echo/EchoPremium",
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -447,20 +447,20 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
 							testruntime.BuildRoute(
 								testruntime.WithPathMatcher(
-									kxdsv1alpha1.PathMatcher{
+									gtcv1alpha1.PathMatcher{
 										Prefix: "/echo.Echo/EchoP",
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -511,24 +511,24 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
 							testruntime.BuildRoute(
 								testruntime.WithPathMatcher(
-									kxdsv1alpha1.PathMatcher{
+									gtcv1alpha1.PathMatcher{
 										Prefix: "/echo.Echo/EchoP",
-										Regex: &kxdsv1alpha1.RegexMatcher{
+										Regex: &gtcv1alpha1.RegexMatcher{
 											Regex:  ".*/EchoPremium",
 											Engine: "re2",
 										},
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -579,8 +579,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -588,12 +588,12 @@ func TestServer(t *testing.T) {
 							testruntime.BuildRoute(
 								testruntime.WithCaseSensitive(false),
 								testruntime.WithPathMatcher(
-									kxdsv1alpha1.PathMatcher{
+									gtcv1alpha1.PathMatcher{
 										Prefix: "/echo.echo/echop",
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -644,8 +644,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -660,7 +660,7 @@ func TestServer(t *testing.T) {
 									),
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -718,8 +718,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -732,7 +732,7 @@ func TestServer(t *testing.T) {
 									),
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -789,24 +789,24 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
 							testruntime.BuildRoute(
 								testruntime.WithHeaderMatchers(
-									kxdsv1alpha1.HeaderMatcher{
+									gtcv1alpha1.HeaderMatcher{
 										Name: "x-variant",
-										Regex: &kxdsv1alpha1.RegexMatcher{
+										Regex: &gtcv1alpha1.RegexMatcher{
 											Regex:  "Awe.*",
 											Engine: "re2",
 										},
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -862,24 +862,24 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
 							testruntime.BuildRoute(
 								testruntime.WithHeaderMatchers(
-									kxdsv1alpha1.HeaderMatcher{
+									gtcv1alpha1.HeaderMatcher{
 										Name: "x-variant",
-										Range: &kxdsv1alpha1.RangeMatcher{
+										Range: &gtcv1alpha1.RangeMatcher{
 											Start: 10,
 											End:   20,
 										},
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -939,8 +939,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -953,7 +953,7 @@ func TestServer(t *testing.T) {
 									),
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -1005,8 +1005,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1019,7 +1019,7 @@ func TestServer(t *testing.T) {
 									),
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -1079,8 +1079,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1093,7 +1093,7 @@ func TestServer(t *testing.T) {
 									),
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -1153,8 +1153,8 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1162,13 +1162,13 @@ func TestServer(t *testing.T) {
 							testruntime.BuildRoute(
 								// 20.00% of the traffic will go to v2.
 								testruntime.WithRuntimeFraction(
-									kxdsv1alpha1.Fraction{
+									gtcv1alpha1.Fraction{
 										Numerator:   20,
 										Denominator: "hundred",
 									},
 								),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "v2",
 										Weight: 1,
 									},
@@ -1202,8 +1202,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1213,7 +1213,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1243,8 +1243,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1252,7 +1252,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildRoute(
 								testruntime.WithRouteMaxStreamDuration(50*time.Millisecond),
 								testruntime.WithClusterRefs(
-									kxdsv1alpha1.ClusterRef{
+									gtcv1alpha1.ClusterRef{
 										Name:   "default",
 										Weight: 1,
 									},
@@ -1263,7 +1263,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1295,8 +1295,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1308,7 +1308,7 @@ func TestServer(t *testing.T) {
 								"default",
 								testruntime.WithMaxRequests(1),
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1342,8 +1342,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1351,11 +1351,11 @@ func TestServer(t *testing.T) {
 							testruntime.BuildSingleRoute("default"),
 						),
 						testruntime.WithFilters(
-							kxdsv1alpha1.Filter{
-								Fault: &kxdsv1alpha1.FaultFilter{
-									Delay: &kxdsv1alpha1.FaultDelay{
+							gtcv1alpha1.Filter{
+								Fault: &gtcv1alpha1.FaultFilter{
+									Delay: &gtcv1alpha1.FaultDelay{
 										Fixed: testruntime.DurationPtr(500 * time.Millisecond),
-										Percentage: &kxdsv1alpha1.Fraction{
+										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
 										},
@@ -1367,7 +1367,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1397,8 +1397,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1406,11 +1406,11 @@ func TestServer(t *testing.T) {
 							testruntime.BuildSingleRoute("default"),
 						),
 						testruntime.WithFilters(
-							kxdsv1alpha1.Filter{
-								Fault: &kxdsv1alpha1.FaultFilter{
-									Delay: &kxdsv1alpha1.FaultDelay{
-										Header: &kxdsv1alpha1.HeaderFault{},
-										Percentage: &kxdsv1alpha1.Fraction{
+							gtcv1alpha1.Filter{
+								Fault: &gtcv1alpha1.FaultFilter{
+									Delay: &gtcv1alpha1.FaultDelay{
+										Header: &gtcv1alpha1.HeaderFault{},
+										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
 										},
@@ -1422,7 +1422,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1458,8 +1458,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1467,11 +1467,11 @@ func TestServer(t *testing.T) {
 							testruntime.BuildSingleRoute("default"),
 						),
 						testruntime.WithFilters(
-							kxdsv1alpha1.Filter{
-								Fault: &kxdsv1alpha1.FaultFilter{
-									Abort: &kxdsv1alpha1.FaultAbort{
+							gtcv1alpha1.Filter{
+								Fault: &gtcv1alpha1.FaultFilter{
+									Abort: &gtcv1alpha1.FaultAbort{
 										HTTPStatus: testruntime.Ptr(uint32(404)),
-										Percentage: &kxdsv1alpha1.Fraction{
+										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
 										},
@@ -1483,7 +1483,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1510,8 +1510,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1519,11 +1519,11 @@ func TestServer(t *testing.T) {
 							testruntime.BuildSingleRoute("default"),
 						),
 						testruntime.WithFilters(
-							kxdsv1alpha1.Filter{
-								Fault: &kxdsv1alpha1.FaultFilter{
-									Abort: &kxdsv1alpha1.FaultAbort{
+							gtcv1alpha1.Filter{
+								Fault: &gtcv1alpha1.FaultFilter{
+									Abort: &gtcv1alpha1.FaultAbort{
 										GRPCStatus: testruntime.Ptr(uint32(4)),
-										Percentage: &kxdsv1alpha1.Fraction{
+										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
 										},
@@ -1535,7 +1535,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1562,8 +1562,8 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1571,11 +1571,11 @@ func TestServer(t *testing.T) {
 							testruntime.BuildSingleRoute("default"),
 						),
 						testruntime.WithFilters(
-							kxdsv1alpha1.Filter{
-								Fault: &kxdsv1alpha1.FaultFilter{
-									Abort: &kxdsv1alpha1.FaultAbort{
-										Header: &kxdsv1alpha1.HeaderFault{},
-										Percentage: &kxdsv1alpha1.Fraction{
+							gtcv1alpha1.Filter{
+								Fault: &gtcv1alpha1.FaultFilter{
+									Abort: &gtcv1alpha1.FaultAbort{
+										Header: &gtcv1alpha1.HeaderFault{},
+										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
 										},
@@ -1587,7 +1587,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1630,8 +1630,8 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1642,7 +1642,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1665,7 +1665,7 @@ func TestServer(t *testing.T) {
 			),
 			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, _ []testruntime.Backend) {
 				// We update to v2, which means that backend pod should point to a new instance.
-				_, err := k8s.KxdsApi.ApiV1alpha1().XDSServices("default").Update(
+				_, err := k8s.GTCApi.ApiV1alpha1().XDSServices("default").Update(
 					context.Background(),
 					testruntime.Ptr(
 						testruntime.BuildXDSService("test-xds",
@@ -1677,7 +1677,7 @@ func TestServer(t *testing.T) {
 								testruntime.BuildCluster(
 									"default",
 									testruntime.WithServiceRef(
-										kxdsv1alpha1.ServiceRef{
+										gtcv1alpha1.ServiceRef{
 											Name: serviceNameV2,
 											Port: grpcPort,
 										},
@@ -1715,8 +1715,8 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1727,7 +1727,7 @@ func TestServer(t *testing.T) {
 							testruntime.BuildCluster(
 								"default",
 								testruntime.WithServiceRef(
-									kxdsv1alpha1.ServiceRef{
+									gtcv1alpha1.ServiceRef{
 										Name: serviceNameV1,
 										Port: grpcPort,
 									},
@@ -1787,8 +1787,8 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []kxdsv1alpha1.XDSService {
-				return []kxdsv1alpha1.XDSService{
+			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
+				return []gtcv1alpha1.XDSService{
 					testruntime.BuildXDSService(
 						"test-xds",
 						"default",
@@ -1801,7 +1801,7 @@ func TestServer(t *testing.T) {
 								testruntime.WithLocalities(
 									testruntime.BuildLocality(
 										testruntime.WithLocalityServiceRef(
-											kxdsv1alpha1.ServiceRef{
+											gtcv1alpha1.ServiceRef{
 												Name: serviceNameV1,
 												Port: grpcPort,
 											},
@@ -1862,7 +1862,7 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices:    func([]testruntime.Backend) []kxdsv1alpha1.XDSService { return nil },
+			buildXDSServices:    func([]testruntime.Backend) []gtcv1alpha1.XDSService { return nil },
 			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
 			setBackendsBehavior: answer,
 			doAssertPreUpdate: testruntime.CallOnce(
@@ -1883,7 +1883,7 @@ func TestServer(t *testing.T) {
 						testruntime.BuildCluster(
 							"default",
 							testruntime.WithServiceRef(
-								kxdsv1alpha1.ServiceRef{
+								gtcv1alpha1.ServiceRef{
 									Name: serviceNameV1,
 									Port: grpcPort,
 								},
@@ -1892,7 +1892,7 @@ func TestServer(t *testing.T) {
 					),
 				)
 
-				_, err := k8s.KxdsApi.ApiV1alpha1().XDSServices("default").Create(
+				_, err := k8s.GTCApi.ApiV1alpha1().XDSServices("default").Create(
 					context.Background(),
 					&svc,
 					metav1.CreateOptions{},
@@ -1938,11 +1938,11 @@ func TestServer(t *testing.T) {
 
 			defer cancel()
 
-			server, err := kxds.NewXDSServer(
+			server, err := gtc.NewXDSServer(
 				ctx,
-				kxds.XDSServerConfig{
-					K8sInformers:  k8s.K8sInformers,
-					KxdsInformers: k8s.KxdsInformers,
+				gtc.XDSServerConfig{
+					K8sInformers: k8s.K8sInformers,
+					GTCInformers: k8s.GTCInformers,
 					// TODO(jly): find a way to make this parralelizable.
 					// The thing is that having multiple xds servers in parrallel means sadly
 					// having multiple values for the XDS_BOOTSTRAP_CONFIG env variables.

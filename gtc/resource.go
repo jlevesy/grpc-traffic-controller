@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 func resourcePrefix(namespace, name string) string {
-	return "kxds" + "." + namespace + "." + name + "."
+	return "gtc" + "." + namespace + "." + name + "."
 }
 
 func routeConfigName(namespace, name string) string {
@@ -34,7 +34,7 @@ func parseXDSResourceName(resourceName string) (xdsResourceName, error) {
 		return xdsResourceName{}, malformedResourceNameErr(resourceName)
 	}
 
-	if sp[0] != "kxds" {
+	if sp[0] != "gtc" {
 		return xdsResourceName{}, malformedResourceNameErr(resourceName)
 	}
 
