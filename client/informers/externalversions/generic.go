@@ -21,7 +21,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
+	v1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -52,7 +52,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=api.kxds.dev, Version=v1alpha1
+	// Group=api.gtc.dev, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("xdsservices"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Api().V1alpha1().XDSServices().Informer()}, nil
 

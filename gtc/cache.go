@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/server/stream/v3"
-	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
+	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 	"go.uber.org/zap"
 	discoveryv1listers "k8s.io/client-go/listers/discovery/v1"
 )
@@ -19,7 +19,7 @@ type configWatcher struct {
 	logger *zap.Logger
 }
 
-func newConfigWatcher(endpointSlicesLister discoveryv1listers.EndpointSliceLister, xdsServicesLister kxdslisters.XDSServiceLister, watches watchBuilder, logger *zap.Logger) *configWatcher {
+func newConfigWatcher(endpointSlicesLister discoveryv1listers.EndpointSliceLister, xdsServicesLister gtclisters.XDSServiceLister, watches watchBuilder, logger *zap.Logger) *configWatcher {
 	return &configWatcher{
 		logger:       logger.With(zap.String("component", "config_watcher")),
 		watchBuilder: watches,

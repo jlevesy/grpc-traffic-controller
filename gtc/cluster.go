@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"fmt"
@@ -7,13 +7,13 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	anyv1 "github.com/golang/protobuf/ptypes/any"
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
-	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
+	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type clusterHandler struct {
-	xdsServices kxdslisters.XDSServiceLister
+	xdsServices gtclisters.XDSServiceLister
 }
 
 func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
@@ -58,7 +58,7 @@ func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, 
 	return &response, nil
 }
 
-func makeCluster(clusterName string, spec kxdsv1alpha1.Cluster) *cluster.Cluster {
+func makeCluster(clusterName string, spec gtcv1alpha1.Cluster) *cluster.Cluster {
 	c := cluster.Cluster{
 		Name:                 clusterName,
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
@@ -87,9 +87,9 @@ func makeCluster(clusterName string, spec kxdsv1alpha1.Cluster) *cluster.Cluster
 	return &c
 }
 
-func extractClusterSpec(clusterName string, xdsSvc *kxdsv1alpha1.XDSService) (kxdsv1alpha1.Cluster, error) {
+func extractClusterSpec(clusterName string, xdsSvc *gtcv1alpha1.XDSService) (gtcv1alpha1.Cluster, error) {
 	if xdsSvc.Spec.DefaultCluster != nil {
-		return kxdsv1alpha1.Cluster{
+		return gtcv1alpha1.Cluster{
 			Name:        "default",
 			MaxRequests: xdsSvc.Spec.DefaultCluster.MaxRequests,
 			Service:     xdsSvc.Spec.DefaultCluster.Service,
@@ -102,12 +102,12 @@ func extractClusterSpec(clusterName string, xdsSvc *kxdsv1alpha1.XDSService) (kx
 		}
 	}
 
-	return kxdsv1alpha1.Cluster{}, &clusterNotFoundError{wantName: clusterName, svc: xdsSvc}
+	return gtcv1alpha1.Cluster{}, &clusterNotFoundError{wantName: clusterName, svc: xdsSvc}
 }
 
 type clusterNotFoundError struct {
 	wantName string
-	svc      *kxdsv1alpha1.XDSService
+	svc      *gtcv1alpha1.XDSService
 }
 
 func (c *clusterNotFoundError) Error() string {

@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"net/http"
 
-	apiv1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/typed/kxds/v1alpha1"
+	apiv1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/clientset/versioned/typed/gtc/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

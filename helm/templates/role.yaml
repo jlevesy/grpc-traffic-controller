@@ -6,7 +6,7 @@ metadata:
   name: {{ include "helm.fullname" . }}-controller
 rules:
 - apiGroups:
-  - api.kxds.dev
+  - api.gtc.dev
   resources:
   - xdsservices
   verbs:

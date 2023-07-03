@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: kxds-nodeport
+  name: gtc-nodeport
 spec:
   ports:
   - name: xds
@@ -10,7 +10,7 @@ spec:
     protocol: TCP
     targetPort: 16000
   selector:
-    app.kubernetes.io/instance: kxds-dev
-    app.kubernetes.io/name: kxds
+    app.kubernetes.io/instance: gtc-dev
+    app.kubernetes.io/name: gtc
   type: NodePort
 

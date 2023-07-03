@@ -1,11 +1,11 @@
-package kxds
+package gtc
 
 import (
 	"context"
 
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	kxdsv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/kxds/v1alpha1"
-	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
+	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
+	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 	"go.uber.org/zap"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +31,7 @@ func (h *xdsServiceChangedHandler) OnDelete(ctx context.Context, obj any) error 
 }
 
 func (h *xdsServiceChangedHandler) handle(ctx context.Context, obj any) error {
-	svc, ok := obj.(*kxdsv1alpha1.XDSService)
+	svc, ok := obj.(*gtcv1alpha1.XDSService)
 	if !ok {
 		h.logger.Error("Invalid object type, expected an XDSService")
 		return nil
@@ -76,7 +76,7 @@ type endpointSliceChangedHandler struct {
 	watches *watches
 	logger  *zap.Logger
 
-	servicesLister kxdslisters.XDSServiceLister
+	servicesLister gtclisters.XDSServiceLister
 }
 
 func (h *endpointSliceChangedHandler) OnAdd(ctx context.Context, obj any) error {
@@ -136,7 +136,7 @@ func (h *endpointSliceChangedHandler) handle(ctx context.Context, obj any) error
 	return nil
 }
 
-func matchesCluster(epSlice metav1.Object, xdsSvc *kxdsv1alpha1.XDSService, cluster kxdsv1alpha1.Cluster) bool {
+func matchesCluster(epSlice metav1.Object, xdsSvc *gtcv1alpha1.XDSService, cluster gtcv1alpha1.Cluster) bool {
 	switch {
 	case cluster.Service != nil:
 		return matchesService(epSlice, xdsSvc, cluster.Service)
@@ -153,7 +153,7 @@ func matchesCluster(epSlice metav1.Object, xdsSvc *kxdsv1alpha1.XDSService, clus
 	}
 }
 
-func matchesService(epSlice metav1.Object, xdsSvc *kxdsv1alpha1.XDSService, svc *kxdsv1alpha1.ServiceRef) bool {
+func matchesService(epSlice metav1.Object, xdsSvc *gtcv1alpha1.XDSService, svc *gtcv1alpha1.ServiceRef) bool {
 	// If the name doesn't match then we're out.
 	if svcName := epSlice.GetLabels()["kubernetes.io/service-name"]; svcName != svc.Name {
 		return false

@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	discoveryv3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	sotwv3 "github.com/envoyproxy/go-control-plane/pkg/server/sotw/v3"
-	kxdsinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
+	gtcinformers "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions"
 	"github.com/jlevesy/grpc-traffic-controller/pkg/controllersupport"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -27,9 +27,9 @@ const (
 )
 
 type XDSServerConfig struct {
-	BindAddr      string
-	K8sInformers  kubeinformers.SharedInformerFactory
-	KxdsInformers kxdsinformers.SharedInformerFactory
+	BindAddr     string
+	K8sInformers kubeinformers.SharedInformerFactory
+	GTCInformers gtcinformers.SharedInformerFactory
 }
 
 type XDSServer struct {
@@ -63,7 +63,7 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 			ctx,
 			newConfigWatcher(
 				cfg.K8sInformers.Discovery().V1().EndpointSlices().Lister(),
-				cfg.KxdsInformers.Api().V1alpha1().XDSServices().Lister(),
+				cfg.GTCInformers.Api().V1alpha1().XDSServices().Lister(),
 				watches,
 				logger,
 			),
@@ -82,7 +82,7 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 
 		endpointSliceChangedQueue = controllersupport.NewQueuedEventHandler(
 			&endpointSliceChangedHandler{
-				servicesLister: cfg.KxdsInformers.Api().V1alpha1().XDSServices().Lister(),
+				servicesLister: cfg.GTCInformers.Api().V1alpha1().XDSServices().Lister(),
 				watches:        watches,
 				logger:         logger,
 			},
@@ -96,7 +96,7 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 		grpcServer, &adsHandler{srv: srv},
 	)
 
-	_, err := cfg.KxdsInformers.
+	_, err := cfg.GTCInformers.
 		Api().
 		V1alpha1().
 		XDSServices().

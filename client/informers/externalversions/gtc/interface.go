@@ -19,8 +19,8 @@ limitations under the License.
 package gtc
 
 import (
-	internalinterfaces "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/internalinterfaces"
 	v1alpha1 "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/gtc/v1alpha1"
+	internalinterfaces "github.com/jlevesy/grpc-traffic-controller/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

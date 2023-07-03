@@ -1,4 +1,4 @@
-package kxds
+package gtc
 
 import (
 	"fmt"
@@ -9,11 +9,11 @@ import (
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	anyv1 "github.com/golang/protobuf/ptypes/any"
-	kxdslisters "github.com/jlevesy/grpc-traffic-controller/client/listers/kxds/v1alpha1"
+	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 )
 
 type listenerHandler struct {
-	xdsServices kxdslisters.XDSServiceLister
+	xdsServices gtclisters.XDSServiceLister
 }
 
 func (h *listenerHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
