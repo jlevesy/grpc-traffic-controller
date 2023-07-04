@@ -30,11 +30,11 @@ type FakeK8s struct {
 	GTCInformers gtcinformers.SharedInformerFactory
 }
 
-func NewFakeK8s(t *testing.T, xdsServices []gtcv1alpha1.XDSService, endpointSlices []discoveryv1.EndpointSlice) FakeK8s {
+func NewFakeK8s(t *testing.T, listeners []gtcv1alpha1.GRPCListener, endpointSlices []discoveryv1.EndpointSlice) FakeK8s {
 	t.Helper()
 
 	var (
-		gtcClientSet = gtcfake.NewSimpleClientset(xdsServicesToRuntimeObjects(xdsServices)...)
+		gtcClientSet = gtcfake.NewSimpleClientset(grpcListenersToRuntimeObjects(listeners)...)
 		gtcInformers = gtcinformers.NewSharedInformerFactory(
 			gtcClientSet,
 			60*time.Second,
@@ -130,10 +130,10 @@ func buildEndpointSlice(id int, name, namespace string, backend Backend) discove
 	}
 }
 
-func xdsServicesToRuntimeObjects(xdsServices []gtcv1alpha1.XDSService) []runtime.Object {
-	res := make([]runtime.Object, len(xdsServices))
+func grpcListenersToRuntimeObjects(listeners []gtcv1alpha1.GRPCListener) []runtime.Object {
+	res := make([]runtime.Object, len(listeners))
 
-	for i, s := range xdsServices {
+	for i, s := range listeners {
 		s := s
 		res[i] = &s
 	}

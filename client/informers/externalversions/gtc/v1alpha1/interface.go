@@ -24,8 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// XDSServices returns a XDSServiceInformer.
-	XDSServices() XDSServiceInformer
+	// GRPCListeners returns a GRPCListenerInformer.
+	GRPCListeners() GRPCListenerInformer
 }
 
 type version struct {
@@ -39,7 +39,7 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// XDSServices returns a XDSServiceInformer.
-func (v *version) XDSServices() XDSServiceInformer {
-	return &xDSServiceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// GRPCListeners returns a GRPCListenerInformer.
+func (v *version) GRPCListeners() GRPCListenerInformer {
+	return &gRPCListenerInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

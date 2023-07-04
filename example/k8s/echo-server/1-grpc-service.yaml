@@ -4,7 +4,7 @@
 # Basic example using defaultCluster
 # Listener address: xds:///echo-server/default-cluster
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: default-cluster
   namespace: echo-server
@@ -18,7 +18,7 @@ spec:
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: basic
   namespace: echo-server
@@ -36,7 +36,7 @@ spec:
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic-v2
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: basic-v2
   namespace: echo-server
@@ -55,7 +55,7 @@ spec:
 # the v2 instance of the echo-server, and 80% to the v1 instance.
 # Listener address: xds:///echo-server/locality-wrr
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: locality-wrr
   namespace: echo-server
@@ -81,7 +81,7 @@ spec:
 # but fall back to the v1 instance if the v2 service goes down.
 # Listener address: xds:///echo-server/fallback
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: fallback
   namespace: echo-server
@@ -108,7 +108,7 @@ spec:
 ---
 # Path based routing: Route calls to premium service RPC to the echo-server v2
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: path-matcher
   namespace: echo-server
@@ -134,7 +134,7 @@ spec:
 ---
 # Path Prefix based routing: Route calls to premium service RPC to the echo-server v2
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: prefix-matcher
   namespace: echo-server
@@ -160,7 +160,7 @@ spec:
 ---
 # Regex Prefix based routing: Route calls to premium service RPC to the echo-server v2
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: regex-matcher
   namespace: echo-server
@@ -188,7 +188,7 @@ spec:
 ---
 # Header based routing: Route calls v2 if header "x-version" has the value "v2"
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: header-exact-matcher
   namespace: echo-server
@@ -215,7 +215,7 @@ spec:
 ---
 # Fractional traffic splitting: 20% of calls go v2 the other 80% hit v1
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: fractional-route-matcher
   namespace: echo-server
@@ -241,7 +241,7 @@ spec:
 ---
 # Circuit breaker.
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: circuit-breaker
   namespace: echo-server
@@ -260,7 +260,7 @@ spec:
 ---
 # Delay Injection filter fixed
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: delay-fault-injection
   namespace: echo-server
@@ -283,7 +283,7 @@ spec:
 ---
 # Fault Injection filter metadata
 apiVersion: api.gtc.dev/v1alpha1
-kind: XDSService
+kind: GRPCListener
 metadata:
   name: fault-injection-header
   namespace: echo-server

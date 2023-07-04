@@ -32,59 +32,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// XDSServiceInformer provides access to a shared informer and lister for
-// XDSServices.
-type XDSServiceInformer interface {
+// GRPCListenerInformer provides access to a shared informer and lister for
+// GRPCListeners.
+type GRPCListenerInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.XDSServiceLister
+	Lister() v1alpha1.GRPCListenerLister
 }
 
-type xDSServiceInformer struct {
+type gRPCListenerInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewXDSServiceInformer constructs a new informer for XDSService type.
+// NewGRPCListenerInformer constructs a new informer for GRPCListener type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewXDSServiceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredXDSServiceInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewGRPCListenerInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredGRPCListenerInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredXDSServiceInformer constructs a new informer for XDSService type.
+// NewFilteredGRPCListenerInformer constructs a new informer for GRPCListener type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredXDSServiceInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredGRPCListenerInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ApiV1alpha1().XDSServices(namespace).List(context.TODO(), options)
+				return client.ApiV1alpha1().GRPCListeners(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ApiV1alpha1().XDSServices(namespace).Watch(context.TODO(), options)
+				return client.ApiV1alpha1().GRPCListeners(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&gtcv1alpha1.XDSService{},
+		&gtcv1alpha1.GRPCListener{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *xDSServiceInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredXDSServiceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *gRPCListenerInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredGRPCListenerInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *xDSServiceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&gtcv1alpha1.XDSService{}, f.defaultInformer)
+func (f *gRPCListenerInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&gtcv1alpha1.GRPCListener{}, f.defaultInformer)
 }
 
-func (f *xDSServiceInformer) Lister() v1alpha1.XDSServiceLister {
-	return v1alpha1.NewXDSServiceLister(f.Informer().GetIndexer())
+func (f *gRPCListenerInformer) Lister() v1alpha1.GRPCListenerLister {
+	return v1alpha1.NewGRPCListenerLister(f.Informer().GetIndexer())
 }

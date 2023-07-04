@@ -205,8 +205,8 @@ type Route struct {
 	Clusters []ClusterRef `json:"clusters,omitempty"`
 }
 
-// XDSServiceSpec defines the desired state of Service
-type XDSServiceSpec struct {
+// GRPCListenerSpec defines the desired state of Service
+type GRPCListenerSpec struct {
 	// MaxStreamDuration is the total duration to keep alive an HTTP request/response stream.
 	// If the time limit is reached the stream will be reset independent of any other timeouts.
 	// If not specified, this value is not set.
@@ -214,32 +214,32 @@ type XDSServiceSpec struct {
 	// Filters represent the list of filters applied in that service.
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
-	// Routes lists all the routes defined for an XDSService.
+	// Routes lists all the routes defined for an GRPCListener.
 	Routes []Route `json:"routes,omitempty"`
-	// Clusters lists all the clusters defined for an XDSService.
+	// Clusters lists all the clusters defined for an GRPCListener.
 	Clusters []Cluster `json:"clusters,omitempty"`
 
 	// DefaulCluster allows to specify a single cluster that will catch all the calls for the given listener.
 	DefaultCluster *DefaultCluster `json:"defaultCluster,omitempty"`
 }
 
-// XDSService is the Schema for the services API
+// GRPCListener is the Schema for the services API
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-type XDSService struct {
+type GRPCListener struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec XDSServiceSpec `json:"spec,omitempty"`
+	Spec GRPCListenerSpec `json:"spec,omitempty"`
 }
 
-// ServiceList contains a list of Service
+// GRPCListenerList contains a list of GRPCListener
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type XDSServiceList struct {
+type GRPCListenerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []XDSService `json:"items"`
+	Items           []GRPCListener `json:"items"`
 }

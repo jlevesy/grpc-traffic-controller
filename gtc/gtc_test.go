@@ -56,7 +56,7 @@ func TestServer(t *testing.T) {
 		desc                string
 		backendCount        int
 		buildEndpointSlices func(backends []testruntime.Backend) []discoveryv1.EndpointSlice
-		buildXDSServices    func(backends []testruntime.Backend) []gtcv1alpha1.XDSService
+		buildGRPCListeners  func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener
 		buildCallContext    func(t *testing.T) *testruntime.CallContext
 		setBackendsBehavior func(t *testing.T, bs testruntime.Backends)
 		doAssertPreUpdate   func(t *testing.T, callCtx *testruntime.CallContext)
@@ -73,9 +73,9 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -119,9 +119,9 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -167,9 +167,9 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithDefaultCluster(
@@ -209,9 +209,9 @@ func TestServer(t *testing.T) {
 					backends[0:1],
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -255,9 +255,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices("test-service-v2", "default", backends[2:4]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -321,9 +321,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices("test-service-v2", "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -383,9 +383,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -447,9 +447,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -511,9 +511,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -579,9 +579,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -644,9 +644,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -718,9 +718,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -789,9 +789,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -862,9 +862,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -939,9 +939,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1005,9 +1005,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1079,9 +1079,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1153,9 +1153,9 @@ func TestServer(t *testing.T) {
 					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
 				)
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1202,9 +1202,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(testruntime.BuildSingleRoute("default")),
@@ -1243,9 +1243,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1295,9 +1295,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1342,9 +1342,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1397,9 +1397,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1458,9 +1458,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1510,9 +1510,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1562,9 +1562,9 @@ func TestServer(t *testing.T) {
 			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
 				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
 			},
-			buildXDSServices: func(backends []testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1630,9 +1630,9 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1665,10 +1665,10 @@ func TestServer(t *testing.T) {
 			),
 			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, _ []testruntime.Backend) {
 				// We update to v2, which means that backend pod should point to a new instance.
-				_, err := k8s.GTCApi.ApiV1alpha1().XDSServices("default").Update(
+				_, err := k8s.GTCApi.ApiV1alpha1().GRPCListeners("default").Update(
 					context.Background(),
 					testruntime.Ptr(
-						testruntime.BuildXDSService("test-xds",
+						testruntime.BuildGRPCListener("test-xds",
 							"default",
 							testruntime.WithRoutes(
 								testruntime.BuildSingleRoute("default"),
@@ -1715,9 +1715,9 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1787,9 +1787,9 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices: func([]testruntime.Backend) []gtcv1alpha1.XDSService {
-				return []gtcv1alpha1.XDSService{
-					testruntime.BuildXDSService(
+			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					testruntime.BuildGRPCListener(
 						"test-xds",
 						"default",
 						testruntime.WithRoutes(
@@ -1862,7 +1862,7 @@ func TestServer(t *testing.T) {
 					),
 				)
 			},
-			buildXDSServices:    func([]testruntime.Backend) []gtcv1alpha1.XDSService { return nil },
+			buildGRPCListeners:  func([]testruntime.Backend) []gtcv1alpha1.GRPCListener { return nil },
 			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
 			setBackendsBehavior: answer,
 			doAssertPreUpdate: testruntime.CallOnce(
@@ -1873,7 +1873,7 @@ func TestServer(t *testing.T) {
 				testruntime.MustFail,
 			),
 			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, backends []testruntime.Backend) {
-				svc := testruntime.BuildXDSService(
+				lis := testruntime.BuildGRPCListener(
 					"test-xds",
 					"default",
 					testruntime.WithRoutes(
@@ -1892,9 +1892,9 @@ func TestServer(t *testing.T) {
 					),
 				)
 
-				_, err := k8s.GTCApi.ApiV1alpha1().XDSServices("default").Create(
+				_, err := k8s.GTCApi.ApiV1alpha1().GRPCListeners("default").Create(
 					context.Background(),
-					&svc,
+					&lis,
 					metav1.CreateOptions{},
 				)
 				require.NoError(t, err)
@@ -1930,7 +1930,7 @@ func TestServer(t *testing.T) {
 				ctx, cancel = context.WithCancel(context.Background())
 				k8s         = testruntime.NewFakeK8s(
 					t,
-					testCase.buildXDSServices(backends),
+					testCase.buildGRPCListeners(backends),
 					testCase.buildEndpointSlices(backends),
 				)
 				serverExited = make(chan struct{})

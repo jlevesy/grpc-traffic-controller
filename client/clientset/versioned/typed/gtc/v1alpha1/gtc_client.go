@@ -28,7 +28,7 @@ import (
 
 type ApiV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	XDSServicesGetter
+	GRPCListenersGetter
 }
 
 // ApiV1alpha1Client is used to interact with features provided by the api.gtc.dev group.
@@ -36,8 +36,8 @@ type ApiV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ApiV1alpha1Client) XDSServices(namespace string) XDSServiceInterface {
-	return newXDSServices(c, namespace)
+func (c *ApiV1alpha1Client) GRPCListeners(namespace string) GRPCListenerInterface {
+	return newGRPCListeners(c, namespace)
 }
 
 // NewForConfig creates a new ApiV1alpha1Client for the given config.
