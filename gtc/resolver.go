@@ -1,7 +1,10 @@
 package gtc
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
+	"hash"
 
 	anyv1 "github.com/golang/protobuf/ptypes/any"
 )
@@ -12,9 +15,27 @@ type resolveRequest struct {
 }
 
 type resolveResponse struct {
-	typeURL     string
-	resources   []*anyv1.Any
-	versionInfo string
+	typeURL       string
+	resources     []*anyv1.Any
+	versionHasher hash.Hash
+}
+
+func newResolveResponse(typeURL string, resourcesCount int) *resolveResponse {
+	return &resolveResponse{
+		typeURL:       typeURL,
+		resources:     make([]*anyv1.Any, resourcesCount),
+		versionHasher: sha256.New(),
+	}
+}
+
+func (r *resolveResponse) useResourceVersion(v string) error {
+	_, err := r.versionHasher.Write([]byte(v))
+
+	return err
+}
+
+func (r *resolveResponse) versionInfo() string {
+	return base64.StdEncoding.EncodeToString(r.versionHasher.Sum(nil))
 }
 
 type resourceResolver interface {

@@ -18,22 +18,22 @@ limitations under the License.
 
 package v1alpha1
 
-// ClusterRefApplyConfiguration represents an declarative configuration of the ClusterRef type for use
+// InterceptorApplyConfiguration represents an declarative configuration of the Interceptor type for use
 // with apply.
-type ClusterRefApplyConfiguration struct {
-	Name *string `json:"name,omitempty"`
+type InterceptorApplyConfiguration struct {
+	Fault *FaultInterceptorApplyConfiguration `json:"fault,omitempty"`
 }
 
-// ClusterRefApplyConfiguration constructs an declarative configuration of the ClusterRef type for use with
+// InterceptorApplyConfiguration constructs an declarative configuration of the Interceptor type for use with
 // apply.
-func ClusterRef() *ClusterRefApplyConfiguration {
-	return &ClusterRefApplyConfiguration{}
+func Interceptor() *InterceptorApplyConfiguration {
+	return &InterceptorApplyConfiguration{}
 }
 
-// WithName sets the Name field in the declarative configuration to the given value
+// WithFault sets the Fault field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Name field is set to the value of the last call.
-func (b *ClusterRefApplyConfiguration) WithName(value string) *ClusterRefApplyConfiguration {
-	b.Name = &value
+// If called multiple times, the Fault field is set to the value of the last call.
+func (b *InterceptorApplyConfiguration) WithFault(value *FaultInterceptorApplyConfiguration) *InterceptorApplyConfiguration {
+	b.Fault = value
 	return b
 }

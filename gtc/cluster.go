@@ -6,7 +6,6 @@ import (
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	anyv1 "github.com/golang/protobuf/ptypes/any"
 	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -17,48 +16,41 @@ type clusterHandler struct {
 }
 
 func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
-	var (
-		err      error
-		versions = make([]string, len(req.resourceNames))
-		response = resolveResponse{
-			typeURL:   resourcesv3.ClusterType,
-			resources: make([]*anyv1.Any, len(req.resourceNames)),
-		}
-	)
+	response := newResolveResponse(resourcesv3.ClusterType, len(req.resourceNames))
 
 	for i, resourceName := range req.resourceNames {
-		ref, err := parseXDSResourceName(resourceName)
+		backendRef, err := parseBackendName(resourceName)
 		if err != nil {
 			return nil, err
 		}
 
-		listener, err := h.grpcListeners.GRPCListeners(ref.Namespace).Get(ref.ListenerName)
+		listener, err := h.grpcListeners.GRPCListeners(backendRef.Namespace).Get(backendRef.ListenerName)
 		if err != nil {
 			return nil, err
 		}
 
-		cl, err := extractClusterSpec(ref.ResourceName, listener)
+		backend, err := findBackendSpec(backendRef, listener)
 		if err != nil {
 			return nil, err
 		}
 
-		response.resources[i], err = encodeResource(req.typeUrl, makeCluster(resourceName, cl))
+		response.resources[i], err = encodeResource(
+			req.typeUrl,
+			makeCluster(resourceName, backend),
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		versions[i] = listener.ResourceVersion
+		if err := response.useResourceVersion(listener.ResourceVersion); err != nil {
+			return nil, err
+		}
 	}
 
-	response.versionInfo, err = computeVersionInfo(versions)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
+	return response, nil
 }
 
-func makeCluster(clusterName string, spec gtcv1alpha1.Cluster) *cluster.Cluster {
+func makeCluster(clusterName string, spec gtcv1alpha1.Backend) *cluster.Cluster {
 	c := cluster.Cluster{
 		Name:                 clusterName,
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
@@ -87,29 +79,55 @@ func makeCluster(clusterName string, spec gtcv1alpha1.Cluster) *cluster.Cluster 
 	return &c
 }
 
-func extractClusterSpec(clusterName string, listener *gtcv1alpha1.GRPCListener) (gtcv1alpha1.Cluster, error) {
-	if listener.Spec.DefaultCluster != nil {
-		return gtcv1alpha1.Cluster{
-			Name:        "default",
-			MaxRequests: listener.Spec.DefaultCluster.MaxRequests,
-			Service:     listener.Spec.DefaultCluster.Service,
-		}, nil
-	}
+var emptyBackend gtcv1alpha1.Backend
 
-	for _, cl := range listener.Spec.Clusters {
-		if cl.Name == clusterName {
-			return cl, nil
+func findBackendSpec(backendRef parsedBackendName, listener *gtcv1alpha1.GRPCListener) (gtcv1alpha1.Backend, error) {
+	if backendRef.RouteID > len(listener.Spec.Routes)-1 {
+		return emptyBackend, &routeNotFoundError{
+			wantRouteID: backendRef.RouteID,
+			listener:    listener,
 		}
 	}
 
-	return gtcv1alpha1.Cluster{}, &clusterNotFoundError{wantName: clusterName, listener: listener}
+	route := listener.Spec.Routes[backendRef.RouteID]
+
+	if backendRef.BackendID > len(route.Backends)-1 {
+		return emptyBackend, &backendNotFoundError{
+			routeID:       backendRef.RouteID,
+			wantBackendID: backendRef.BackendID,
+			listener:      listener,
+		}
+	}
+
+	return route.Backends[backendRef.BackendID], nil
 }
 
-type clusterNotFoundError struct {
-	wantName string
-	listener *gtcv1alpha1.GRPCListener
+type routeNotFoundError struct {
+	wantRouteID int
+	listener    *gtcv1alpha1.GRPCListener
 }
 
-func (c *clusterNotFoundError) Error() string {
-	return fmt.Sprintf("cluster with name %q does not exist on GRPCListener %s/%s", c.wantName, c.listener.Namespace, c.listener.Name)
+func (c *routeNotFoundError) Error() string {
+	return fmt.Sprintf(
+		"route %d does not exist on GRPCListener %s/%s",
+		c.wantRouteID,
+		c.listener.Namespace,
+		c.listener.Name,
+	)
+}
+
+type backendNotFoundError struct {
+	routeID       int
+	wantBackendID int
+	listener      *gtcv1alpha1.GRPCListener
+}
+
+func (c *backendNotFoundError) Error() string {
+	return fmt.Sprintf(
+		"backend with ID %d does not exist under the route %d of the GRPCListener %s/%s",
+		c.wantBackendID,
+		c.routeID,
+		c.listener.Namespace,
+		c.listener.Name,
+	)
 }

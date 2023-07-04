@@ -25,13 +25,10 @@ import (
 // RouteApplyConfiguration represents an declarative configuration of the Route type for use
 // with apply.
 type RouteApplyConfiguration struct {
-	Path                 *PathMatcherApplyConfiguration    `json:"path,omitempty"`
-	Headers              []HeaderMatcherApplyConfiguration `json:"headers,omitempty"`
-	CaseSensitive        *bool                             `json:"caseSensitive,omitempty"`
-	RuntimeFraction      *FractionApplyConfiguration       `json:"fraction,omitempty"`
-	MaxStreamDuration    *v1.Duration                      `json:"maxStreamDuration,omitempty"`
-	GrpcTimeoutHeaderMax *v1.Duration                      `json:"grpcTimeoutHeaderMax,omitempty"`
-	Clusters             []ClusterRefApplyConfiguration    `json:"clusters,omitempty"`
+	Matcher              *RouteMatcherApplyConfiguration `json:"matcher,omitempty"`
+	MaxStreamDuration    *v1.Duration                    `json:"maxStreamDuration,omitempty"`
+	GrpcTimeoutHeaderMax *v1.Duration                    `json:"grpcTimeoutHeaderMax,omitempty"`
+	Backends             []BackendApplyConfiguration     `json:"backends,omitempty"`
 }
 
 // RouteApplyConfiguration constructs an declarative configuration of the Route type for use with
@@ -40,40 +37,11 @@ func Route() *RouteApplyConfiguration {
 	return &RouteApplyConfiguration{}
 }
 
-// WithPath sets the Path field in the declarative configuration to the given value
+// WithMatcher sets the Matcher field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Path field is set to the value of the last call.
-func (b *RouteApplyConfiguration) WithPath(value *PathMatcherApplyConfiguration) *RouteApplyConfiguration {
-	b.Path = value
-	return b
-}
-
-// WithHeaders adds the given value to the Headers field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Headers field.
-func (b *RouteApplyConfiguration) WithHeaders(values ...*HeaderMatcherApplyConfiguration) *RouteApplyConfiguration {
-	for i := range values {
-		if values[i] == nil {
-			panic("nil value passed to WithHeaders")
-		}
-		b.Headers = append(b.Headers, *values[i])
-	}
-	return b
-}
-
-// WithCaseSensitive sets the CaseSensitive field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the CaseSensitive field is set to the value of the last call.
-func (b *RouteApplyConfiguration) WithCaseSensitive(value bool) *RouteApplyConfiguration {
-	b.CaseSensitive = &value
-	return b
-}
-
-// WithRuntimeFraction sets the RuntimeFraction field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the RuntimeFraction field is set to the value of the last call.
-func (b *RouteApplyConfiguration) WithRuntimeFraction(value *FractionApplyConfiguration) *RouteApplyConfiguration {
-	b.RuntimeFraction = value
+// If called multiple times, the Matcher field is set to the value of the last call.
+func (b *RouteApplyConfiguration) WithMatcher(value *RouteMatcherApplyConfiguration) *RouteApplyConfiguration {
+	b.Matcher = value
 	return b
 }
 
@@ -93,15 +61,15 @@ func (b *RouteApplyConfiguration) WithGrpcTimeoutHeaderMax(value v1.Duration) *R
 	return b
 }
 
-// WithClusters adds the given value to the Clusters field in the declarative configuration
+// WithBackends adds the given value to the Backends field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Clusters field.
-func (b *RouteApplyConfiguration) WithClusters(values ...*ClusterRefApplyConfiguration) *RouteApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the Backends field.
+func (b *RouteApplyConfiguration) WithBackends(values ...*BackendApplyConfiguration) *RouteApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
-			panic("nil value passed to WithClusters")
+			panic("nil value passed to WithBackends")
 		}
-		b.Clusters = append(b.Clusters, *values[i])
+		b.Backends = append(b.Backends, *values[i])
 	}
 	return b
 }

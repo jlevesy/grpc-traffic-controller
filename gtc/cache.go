@@ -144,7 +144,7 @@ func (c *cacheResponse) GetDiscoveryResponse() (*discoveryv3.DiscoveryResponse, 
 	return &discoveryv3.DiscoveryResponse{
 		TypeUrl:     c.resp.typeURL,
 		Resources:   c.resp.resources,
-		VersionInfo: c.resp.versionInfo,
+		VersionInfo: c.resp.versionInfo(),
 	}, nil
 }
 
@@ -153,7 +153,7 @@ func (c *cacheResponse) GetRequest() *discoveryv3.DiscoveryRequest {
 }
 
 func (c *cacheResponse) GetVersion() (string, error) {
-	return c.resp.versionInfo, nil
+	return c.resp.versionInfo(), nil
 }
 
 func (c *cacheResponse) GetContext() context.Context {

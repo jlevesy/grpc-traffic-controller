@@ -25,11 +25,9 @@ import (
 // GRPCListenerSpecApplyConfiguration represents an declarative configuration of the GRPCListenerSpec type for use
 // with apply.
 type GRPCListenerSpecApplyConfiguration struct {
-	MaxStreamDuration *v1.Duration                      `json:"maxStreamDuration,omitempty"`
-	Filters           []FilterApplyConfiguration        `json:"filters,omitempty"`
-	Routes            []RouteApplyConfiguration         `json:"routes,omitempty"`
-	Clusters          []ClusterApplyConfiguration       `json:"clusters,omitempty"`
-	DefaultCluster    *DefaultClusterApplyConfiguration `json:"defaultCluster,omitempty"`
+	MaxStreamDuration *v1.Duration                    `json:"maxStreamDuration,omitempty"`
+	Interceptors      []InterceptorApplyConfiguration `json:"interceptors,omitempty"`
+	Routes            []RouteApplyConfiguration       `json:"routes,omitempty"`
 }
 
 // GRPCListenerSpecApplyConfiguration constructs an declarative configuration of the GRPCListenerSpec type for use with
@@ -46,15 +44,15 @@ func (b *GRPCListenerSpecApplyConfiguration) WithMaxStreamDuration(value v1.Dura
 	return b
 }
 
-// WithFilters adds the given value to the Filters field in the declarative configuration
+// WithInterceptors adds the given value to the Interceptors field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Filters field.
-func (b *GRPCListenerSpecApplyConfiguration) WithFilters(values ...*FilterApplyConfiguration) *GRPCListenerSpecApplyConfiguration {
+// If called multiple times, values provided by each call will be appended to the Interceptors field.
+func (b *GRPCListenerSpecApplyConfiguration) WithInterceptors(values ...*InterceptorApplyConfiguration) *GRPCListenerSpecApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
-			panic("nil value passed to WithFilters")
+			panic("nil value passed to WithInterceptors")
 		}
-		b.Filters = append(b.Filters, *values[i])
+		b.Interceptors = append(b.Interceptors, *values[i])
 	}
 	return b
 }
@@ -69,26 +67,5 @@ func (b *GRPCListenerSpecApplyConfiguration) WithRoutes(values ...*RouteApplyCon
 		}
 		b.Routes = append(b.Routes, *values[i])
 	}
-	return b
-}
-
-// WithClusters adds the given value to the Clusters field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the Clusters field.
-func (b *GRPCListenerSpecApplyConfiguration) WithClusters(values ...*ClusterApplyConfiguration) *GRPCListenerSpecApplyConfiguration {
-	for i := range values {
-		if values[i] == nil {
-			panic("nil value passed to WithClusters")
-		}
-		b.Clusters = append(b.Clusters, *values[i])
-	}
-	return b
-}
-
-// WithDefaultCluster sets the DefaultCluster field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the DefaultCluster field is set to the value of the last call.
-func (b *GRPCListenerSpecApplyConfiguration) WithDefaultCluster(value *DefaultClusterApplyConfiguration) *GRPCListenerSpecApplyConfiguration {
-	b.DefaultCluster = value
 	return b
 }

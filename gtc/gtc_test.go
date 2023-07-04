@@ -15,7 +15,7 @@ import (
 
 	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	"github.com/jlevesy/grpc-traffic-controller/gtc"
-	"github.com/jlevesy/grpc-traffic-controller/pkg/testruntime"
+	tr "github.com/jlevesy/grpc-traffic-controller/pkg/testruntime"
 )
 
 const (
@@ -28,1779 +28,40 @@ var (
 	grpcPort = gtcv1alpha1.PortRef{
 		Name: "grpc",
 	}
-
-	v1v2ClusterTopology = testruntime.WithClusters(
-		testruntime.BuildCluster(
-			"v2",
-			testruntime.WithServiceRef(
-				gtcv1alpha1.ServiceRef{
-					Name: serviceNameV2,
-					Port: grpcPort,
-				},
-			),
-		),
-		testruntime.BuildCluster(
-			"v1",
-			testruntime.WithServiceRef(
-				gtcv1alpha1.ServiceRef{
-					Name: serviceNameV1,
-					Port: grpcPort,
-				},
-			),
-		),
-	)
 )
 
 func TestServer(t *testing.T) {
 	for _, testCase := range []struct {
 		desc                string
 		backendCount        int
-		buildEndpointSlices func(backends []testruntime.Backend) []discoveryv1.EndpointSlice
-		buildGRPCListeners  func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener
-		buildCallContext    func(t *testing.T) *testruntime.CallContext
-		setBackendsBehavior func(t *testing.T, bs testruntime.Backends)
-		doAssertPreUpdate   func(t *testing.T, callCtx *testruntime.CallContext)
-		updateResources     func(t *testing.T, k8s testruntime.FakeK8s, backends []testruntime.Backend)
-		doAssertPostUpdate  func(t *testing.T, callCtx *testruntime.CallContext)
+		buildEndpointSlices func(backends []tr.Backend) []discoveryv1.EndpointSlice
+		buildGRPCListeners  func(backends []tr.Backend) []gtcv1alpha1.GRPCListener
+		buildCallContext    func(t *testing.T) *tr.CallContext
+		setBackendsBehavior func(t *testing.T, bs tr.Backends)
+		doAssertPreUpdate   func(t *testing.T, callCtx *tr.CallContext)
+		updateResources     func(t *testing.T, k8s tr.FakeK8s, backends []tr.Backend)
+		doAssertPostUpdate  func(t *testing.T, callCtx *tr.CallContext)
 	}{
 		{
 			desc:         "single call port by name",
 			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(
 					serviceNameV1,
 					defaultNamespace,
 					backends[0:1],
 				)
 			},
-			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
 				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
+					tr.BuildGRPCListener(
 						"test-xds",
 						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "single call port by number",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(
-					serviceNameV1,
-					defaultNamespace,
-					backends[0:1],
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: gtcv1alpha1.PortRef{
-											Number: backends[0].PortNumber(),
-										},
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "single call default cluster",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(
-					serviceNameV1,
-					defaultNamespace,
-					backends[0:1],
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithDefaultCluster(
-							testruntime.BuildDefaultCluster(
-								testruntime.WithDefaultServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "cross namespace",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(
-					serviceNameV1,
-					"some-app",
-					backends[0:1],
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name:      serviceNameV1,
-										Namespace: "some-app",
-										Port:      grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "locality based wrr",
-			backendCount: 4,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices("test-service", "default", backends[0:2]),
-					testruntime.BuildEndpointSlices("test-service-v2", "default", backends[2:4]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithLocalities(
-									testruntime.BuildLocality(
-										testruntime.WithLocalityWeight(80),
-										testruntime.WithLocalityServiceRef(
-											gtcv1alpha1.ServiceRef{
-												Name: "test-service",
-												Port: grpcPort,
-											},
-										),
-									),
-									testruntime.BuildLocality(
-										testruntime.WithLocalityWeight(20),
-										testruntime.WithLocalityServiceRef(
-											gtcv1alpha1.ServiceRef{
-												Name: "test-service-v2",
-												Port: grpcPort,
-											},
-										),
-									),
-								),
-							),
-						),
-					),
-				}
-			},
-			setBackendsBehavior: answer,
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			doAssertPreUpdate: testruntime.CallN(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				10000,
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					// 80% of calls
-					testruntime.AssertCountWithinDelta("backend-0", 4000, 500.0),
-					testruntime.AssertCountWithinDelta("backend-1", 4000, 500.0),
-					// 20% of calls
-					testruntime.AssertCountWithinDelta("backend-2", 1000, 500.0),
-					testruntime.AssertCountWithinDelta("backend-3", 1000, 500.0),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "priority fallback",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					// No backend for this service.
-					testruntime.BuildEndpointSlices("test-service", "default", backends[0:0]),
-					testruntime.BuildEndpointSlices("test-service-v2", "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithLocalities(
-									testruntime.BuildLocality(
-										testruntime.WithLocalityPriority(0),
-										testruntime.WithLocalityServiceRef(
-											gtcv1alpha1.ServiceRef{
-												Name: "test-service",
-												Port: grpcPort,
-											},
-										),
-									),
-									testruntime.BuildLocality(
-										testruntime.WithLocalityPriority(1),
-										testruntime.WithLocalityServiceRef(
-											gtcv1alpha1.ServiceRef{
-												Name: "test-service-v2",
-												Port: grpcPort,
-											},
-										),
-									),
-								),
-							),
-						),
-					),
-				}
-			},
-			setBackendsBehavior: answer,
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					// No calls for the first set of backends
-					testruntime.AssertCount("backend-0", 0),
-					// One call for the second backend.
-					testruntime.AssertCount("backend-1", 1),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "exact path matching",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithPathMatcher(
-									gtcv1alpha1.PathMatcher{
-										Path: "/echo.Echo/EchoPremium",
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEchoPremium,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// One call for the second backend, because we're calling premium.
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// No calls for the first set of backends
-						// First backend should get a call.
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "prefix path matching",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithPathMatcher(
-									gtcv1alpha1.PathMatcher{
-										Prefix: "/echo.Echo/EchoP",
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEchoPremium,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// One call for the second backend, because we're calling premium.
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// No calls for the first set of backends
-						// First backend should get a call.
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "regexp path matching",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithPathMatcher(
-									gtcv1alpha1.PathMatcher{
-										Prefix: "/echo.Echo/EchoP",
-										Regex: &gtcv1alpha1.RegexMatcher{
-											Regex:  ".*/EchoPremium",
-											Engine: "re2",
-										},
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEchoPremium,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// One call for the second backend, because we're calling premium.
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// No calls for the first set of backends
-						// First backend should get a call.
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "case insensitive path matching",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithCaseSensitive(false),
-								testruntime.WithPathMatcher(
-									gtcv1alpha1.PathMatcher{
-										Prefix: "/echo.echo/echop",
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEchoPremium,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// One call for the second backend, because we're calling premium.
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// No calls for the first set of backends
-						// First backend should get a call.
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header invert matching",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									testruntime.HeaderInvertMatch(
-										testruntime.HeaderExactMatch(
-											"x-variant",
-											"Awesome",
-										),
-									),
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								"x-variant": "Awesome",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 0),
-						testruntime.AssertCount("backend-0", 1),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								"x-variant": "NotAwesome",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-0", 0),
-						testruntime.AssertCount("backend-1", 1),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header exact matching",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									testruntime.HeaderExactMatch(
-										"x-variant",
-										"Awesome",
-									),
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Gotha, metadata keys are lowercased.
-								"x-variant": "Awesome",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// One call for the second backend, because we're calling premium.
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// No calls for the first set of backends
-						// First backend should get a call.
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header safe regex match",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									gtcv1alpha1.HeaderMatcher{
-										Name: "x-variant",
-										Regex: &gtcv1alpha1.RegexMatcher{
-											Regex:  "Awe.*",
-											Engine: "re2",
-										},
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								"x-variant": "Awesome",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// One call for the second backend, because we're calling premium.
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						// No calls for the first set of backends
-						// First backend should get a call.
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header range match",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									gtcv1alpha1.HeaderMatcher{
-										Name: "x-variant",
-										Range: &gtcv1alpha1.RangeMatcher{
-											Start: 10,
-											End:   20,
-										},
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// In range, call backend 1.
-								"x-variant": "12",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Out of bound, call backend-0.
-								"x-variant": "9",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header present match",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									testruntime.HeaderPresentMatch(
-										"x-variant",
-										true,
-									),
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Header is present, send to v2.
-								"x-variant": "wooop",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(testruntime.MethodEcho),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header prefix match",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									testruntime.HeaderPrefixMatch(
-										"x-variant",
-										"wo",
-									),
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Header has the prefix wo, send to v2.
-								"x-variant": "wooop",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Header has not the prefix wo, send to v1.
-								"x-variant": "not",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header suffix match",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithHeaderMatchers(
-									testruntime.HeaderSuffixMatch(
-										"x-variant",
-										"oop",
-									),
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.MultiAssert(
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Header has the sufix oop, send to v2.
-								"x-variant": "wooop",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
-						testruntime.AssertCount("backend-0", 0),
-					),
-				),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Header has not the suffix oop, send to v1.
-								"x-variant": "not",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-0", 1),
-						testruntime.AssertCount("backend-1", 0),
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "runtime fraction traffic splitting",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
-					testruntime.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
-				)
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								// 20.00% of the traffic will go to v2.
-								testruntime.WithRuntimeFraction(
-									gtcv1alpha1.Fraction{
-										Numerator:   20,
-										Denominator: "hundred",
-									},
-								),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "v2",
-										Weight: 1,
-									},
-								),
-							),
-							testruntime.BuildSingleRoute("v1"),
-						),
-						v1v2ClusterTopology,
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallN(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				10000,
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCountWithinDelta("backend-1", 2000, 500.0),
-					testruntime.AssertCountWithinDelta("backend-0", 8000, 500.0),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "max stream duration",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(testruntime.BuildSingleRoute("default")),
-						testruntime.WithMaxStreamDuration(50*time.Millisecond),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: hang(10 * time.Second),
-			doAssertPreUpdate: testruntime.WithinDelay(
-				time.Second,
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.MustFail,
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "max stream duration on route",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildRoute(
-								testruntime.WithRouteMaxStreamDuration(50*time.Millisecond),
-								testruntime.WithClusterRefs(
-									gtcv1alpha1.ClusterRef{
-										Name:   "default",
-										Weight: 1,
-									},
-								),
-							),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: hang(10 * time.Second),
-			// TODO(jly): this is weird, this test takes 10s when running after max_stream_duration
-			// but only 1s  when being run standalone. Something here is fishy.
-			doAssertPreUpdate: testruntime.WithinDelay(
-				time.Second,
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.MustFail,
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "max requests on cluster",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithMaxRequests(1),
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: hang(1 * time.Second),
-			doAssertPreUpdate: testruntime.CallNParallel(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				10,
-				testruntime.AggregateByError(
-					testruntime.AssertCount("ok", 1),
-					testruntime.AssertAggregatedValuePartial(
-						"rpc error: code = Unavailable desc = max requests 1 exceeded",
-						9,
-					),
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "fixed delay injection",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithFilters(
-							gtcv1alpha1.Filter{
-								Fault: &gtcv1alpha1.FaultFilter{
-									Delay: &gtcv1alpha1.FaultDelay{
-										Fixed: testruntime.DurationPtr(500 * time.Millisecond),
-										Percentage: &gtcv1alpha1.Fraction{
-											Numerator:   100,
-											Denominator: "hundred",
-										},
-									},
-								},
-							},
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.ExceedDelay(
-				200*time.Millisecond,
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "header delay injection",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithFilters(
-							gtcv1alpha1.Filter{
-								Fault: &gtcv1alpha1.FaultFilter{
-									Delay: &gtcv1alpha1.FaultDelay{
-										Header: &gtcv1alpha1.HeaderFault{},
-										Percentage: &gtcv1alpha1.Fraction{
-											Numerator:   100,
-											Denominator: "hundred",
-										},
-									},
-								},
-							},
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.ExceedDelay(
-				200*time.Millisecond,
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-						testruntime.WithMetadata(
-							map[string]string{
-								// Delay by 500ms.
-								"x-envoy-fault-delay-request": "500",
-							},
-						),
-					),
-					testruntime.NoCallErrors,
-				),
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "abort injection http",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithFilters(
-							gtcv1alpha1.Filter{
-								Fault: &gtcv1alpha1.FaultFilter{
-									Abort: &gtcv1alpha1.FaultAbort{
-										HTTPStatus: testruntime.Ptr(uint32(404)),
-										Percentage: &gtcv1alpha1.Fraction{
-											Numerator:   100,
-											Denominator: "hundred",
-										},
-									},
-								},
-							},
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.MustFail,
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "abort injection grpc",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithFilters(
-							gtcv1alpha1.Filter{
-								Fault: &gtcv1alpha1.FaultFilter{
-									Abort: &gtcv1alpha1.FaultAbort{
-										GRPCStatus: testruntime.Ptr(uint32(4)),
-										Percentage: &gtcv1alpha1.Fraction{
-											Numerator:   100,
-											Denominator: "hundred",
-										},
-									},
-								},
-							},
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.MustFail,
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "abort header grpc",
-			backendCount: 1,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
-			},
-			buildGRPCListeners: func(backends []testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithFilters(
-							gtcv1alpha1.Filter{
-								Fault: &gtcv1alpha1.FaultFilter{
-									Abort: &gtcv1alpha1.FaultAbort{
-										Header: &gtcv1alpha1.HeaderFault{},
-										Percentage: &gtcv1alpha1.Fraction{
-											Numerator:   100,
-											Denominator: "hundred",
-										},
-									},
-								},
-							},
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-					testruntime.WithMetadata(
-						map[string]string{
-							"x-envoy-fault-abort-grpc-request": "3",
-						},
-					),
-				),
-				testruntime.MustFail,
-			),
-			updateResources:    noChange,
-			doAssertPostUpdate: noAssert,
-		},
-		{
-			desc:         "single call update service",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(
-						serviceNameV1,
-						defaultNamespace,
-						backends[0:1],
-					),
-					testruntime.BuildEndpointSlices(
-						serviceNameV2,
-						defaultNamespace,
-						backends[1:2],
-					),
-				)
-			},
-			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
-				),
-			),
-			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, _ []testruntime.Backend) {
-				// We update to v2, which means that backend pod should point to a new instance.
-				_, err := k8s.GTCApi.ApiV1alpha1().GRPCListeners("default").Update(
-					context.Background(),
-					testruntime.Ptr(
-						testruntime.BuildGRPCListener("test-xds",
-							"default",
-							testruntime.WithRoutes(
-								testruntime.BuildSingleRoute("default"),
-							),
-							testruntime.WithClusters(
-								testruntime.BuildCluster(
-									"default",
-									testruntime.WithServiceRef(
-										gtcv1alpha1.ServiceRef{
-											Name: serviceNameV2,
-											Port: grpcPort,
-										},
-									),
-								),
-							),
-						),
-					),
-					metav1.UpdateOptions{},
-				)
-				require.NoError(t, err)
-			},
-			doAssertPostUpdate: testruntime.MultiAssert(
-				testruntime.Wait(500*time.Millisecond),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
-					),
-				),
-			),
-		},
-		{
-			desc:         "single call update endpointslice",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(
-						serviceNameV1,
-						defaultNamespace,
-						backends[0:1],
-					),
-				)
-			},
-			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithServiceRef(
-									gtcv1alpha1.ServiceRef{
-										Name: serviceNameV1,
-										Port: grpcPort,
-									},
-								),
-							),
-						),
-					),
-				}
-			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
-			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
-				),
-			),
-			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, backends []testruntime.Backend) {
-				// Write the same endpoints, but pointing to the first backend.
-				newEps := testruntime.BuildEndpointSlices(serviceNameV1, defaultNamespace, backends[1:2])
-
-				for _, ep := range newEps {
-					_, err := k8s.K8s.DiscoveryV1().EndpointSlices(defaultNamespace).Update(
-						context.Background(),
-						ep.DeepCopy(),
-						metav1.UpdateOptions{},
-					)
-					require.NoError(t, err)
-				}
-			},
-			doAssertPostUpdate: testruntime.MultiAssert(
-				// TODO(jly) sadly needed as I don't have any obvious way to wait for the changes to be sent to the client.
-				testruntime.Wait(500*time.Millisecond),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
-					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
-					),
-				),
-			),
-		},
-		{
-			desc:         "single call update endpointslice with localities",
-			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(
-						serviceNameV1,
-						defaultNamespace,
-						backends[0:1],
-					),
-				)
-			},
-			buildGRPCListeners: func([]testruntime.Backend) []gtcv1alpha1.GRPCListener {
-				return []gtcv1alpha1.GRPCListener{
-					testruntime.BuildGRPCListener(
-						"test-xds",
-						"default",
-						testruntime.WithRoutes(
-							testruntime.BuildSingleRoute("default"),
-						),
-						testruntime.WithClusters(
-							testruntime.BuildCluster(
-								"default",
-								testruntime.WithLocalities(
-									testruntime.BuildLocality(
-										testruntime.WithLocalityServiceRef(
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
 											gtcv1alpha1.ServiceRef{
 												Name: serviceNameV1,
 												Port: grpcPort,
@@ -1813,20 +74,1659 @@ func TestServer(t *testing.T) {
 					),
 				}
 			},
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
 			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
 				),
-				testruntime.NoCallErrors,
-				testruntime.CountByBackendID(
-					testruntime.AssertCount("backend-0", 1),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
 				),
 			),
-			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, backends []testruntime.Backend) {
-				// Write the same endpoints, but pointing to the first backend.
-				newEps := testruntime.BuildEndpointSlices(serviceNameV1, defaultNamespace, backends[1:2])
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "single call port by number",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(
+					serviceNameV1,
+					defaultNamespace,
+					backends[0:1],
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: gtcv1alpha1.PortRef{
+													Number: backends[0].PortNumber(),
+												},
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "cross namespace",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(
+					serviceNameV1,
+					"some-app",
+					backends[0:1],
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name:      serviceNameV1,
+												Namespace: "some-app",
+												Port:      grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "locality based wrr",
+			backendCount: 4,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices("test-service", "default", backends[0:2]),
+					tr.BuildEndpointSlices("test-service-v2", "default", backends[2:4]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithLocalities(
+											tr.BuildLocality(
+												tr.WithLocalityWeight(80),
+												tr.WithLocalityServiceRef(
+													gtcv1alpha1.ServiceRef{
+														Name: "test-service",
+														Port: grpcPort,
+													},
+												),
+											),
+											tr.BuildLocality(
+												tr.WithLocalityWeight(20),
+												tr.WithLocalityServiceRef(
+													gtcv1alpha1.ServiceRef{
+														Name: "test-service-v2",
+														Port: grpcPort,
+													},
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			setBackendsBehavior: answer,
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			doAssertPreUpdate: tr.CallN(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				10000,
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					// 80% of calls
+					tr.AssertCountWithinDelta("backend-0", 4000, 500.0),
+					tr.AssertCountWithinDelta("backend-1", 4000, 500.0),
+					// 20% of calls
+					tr.AssertCountWithinDelta("backend-2", 1000, 500.0),
+					tr.AssertCountWithinDelta("backend-3", 1000, 500.0),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "priority fallback",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					// No backend for this service.
+					tr.BuildEndpointSlices("test-service", "default", backends[0:0]),
+					tr.BuildEndpointSlices("test-service-v2", "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithLocalities(
+											tr.BuildLocality(
+												tr.WithLocalityPriority(0),
+												tr.WithLocalityServiceRef(
+													gtcv1alpha1.ServiceRef{
+														Name: "test-service",
+														Port: grpcPort,
+													},
+												),
+											),
+											tr.BuildLocality(
+												tr.WithLocalityPriority(1),
+												tr.WithLocalityServiceRef(
+													gtcv1alpha1.ServiceRef{
+														Name: "test-service-v2",
+														Port: grpcPort,
+													},
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			setBackendsBehavior: answer,
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					// No calls for the first set of backends
+					tr.AssertCount("backend-0", 0),
+					// One call for the second backend.
+					tr.AssertCount("backend-1", 1),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher method matching",
+			backendCount: 2,
+
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMethodMatcher(
+											"echo",
+											"Echo",
+											"EchoPremium",
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEchoPremium,
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						// One call for the second backend, because we're calling premium.
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher service matcher",
+			backendCount: 2,
+
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithServiceMatcher(
+											"echo",
+											"Echo",
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					// One call for the second backend, because we're calling premium.
+					tr.AssertCount("backend-1", 1),
+					tr.AssertCount("backend-0", 0),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher namespace matcher",
+			backendCount: 2,
+
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithNamespaceMatcher("echo"),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					// One call for the second backend, because we're calling premium.
+					tr.AssertCount("backend-1", 1),
+					tr.AssertCount("backend-0", 0),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata invert matching",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											tr.MetadataInvertMatch(
+												tr.MetadataExactMatch(
+													"x-variant",
+													"Awesome",
+												),
+											),
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								"x-variant": "Awesome",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 0),
+						tr.AssertCount("backend-0", 1),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								"x-variant": "NotAwesome",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-0", 0),
+						tr.AssertCount("backend-1", 1),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata exact matching",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											tr.MetadataExactMatch(
+												"x-variant",
+												"Awesome",
+											),
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								"x-variant": "Awesome",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						// One call for the second backend, because we're calling premium.
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata safe regex match",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											gtcv1alpha1.MetadataMatcher{
+												Name: "x-variant",
+												Regex: &gtcv1alpha1.RegexMatcher{
+													Regex:  "Awe.*",
+													Engine: "re2",
+												},
+											},
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								"x-variant": "Awesome",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						// One call for the second backend, because we're calling premium.
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						// No calls for the first set of backends
+						// First backend should get a call.
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata range match",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											gtcv1alpha1.MetadataMatcher{
+												Name: "x-variant",
+												Range: &gtcv1alpha1.RangeMatcher{
+													Start: 10,
+													End:   20,
+												},
+											},
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// In range, call backend 1.
+								"x-variant": "12",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Out of bound, call backend-0.
+								"x-variant": "9",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata present match",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											tr.MetadataPresentMatch(
+												"x-variant",
+												true,
+											),
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Header is present, send to v2.
+								"x-variant": "wooop",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(tr.MethodEcho),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata prefix match",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											tr.MetadataPrefixMatch(
+												"x-variant",
+												"wo",
+											),
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Header has the prefix wo, send to v2.
+								"x-variant": "wooop",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Header has not the prefix wo, send to v1.
+								"x-variant": "not",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher metadata suffix match",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMetadataMatchers(
+											tr.MetadataSuffixMatch(
+												"x-variant",
+												"oop",
+											),
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Header has the sufix oop, send to v2.
+								"x-variant": "wooop",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
+						tr.AssertCount("backend-0", 0),
+					),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Header has not the suffix oop, send to v1.
+								"x-variant": "not",
+							},
+						),
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-0", 1),
+						tr.AssertCount("backend-1", 0),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route matcher runtime fraction traffic splitting",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1]),
+					tr.BuildEndpointSlices(serviceNameV2, "default", backends[1:2]),
+				)
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithFractionMatcher(
+											gtcv1alpha1.Fraction{
+												Numerator:   20,
+												Denominator: "hundred",
+											},
+										),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallN(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				10000,
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCountWithinDelta("backend-1", 2000, 500.0),
+					tr.AssertCountWithinDelta("backend-0", 8000, 500.0),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "listener max stream duration",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithMaxStreamDuration(50*time.Millisecond),
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: hang(10 * time.Second),
+			doAssertPreUpdate: tr.WithinDelay(
+				time.Second,
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.MustFail,
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route max stream duration",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMaxStreamDuration(50*time.Millisecond),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: hang(10 * time.Second),
+			doAssertPreUpdate: tr.WithinDelay(
+				time.Second,
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.MustFail,
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "max requests on backend",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithMaxRequests(1),
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: hang(1 * time.Second),
+			doAssertPreUpdate: tr.CallNParallel(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				10,
+				tr.AggregateByError(
+					tr.AssertCount("ok", 1),
+					tr.AssertAggregatedValuePartial(
+						"rpc error: code = Unavailable desc = max requests 1 exceeded",
+						9,
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "listener interceptors fixed delay injection",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+						tr.WithInterceptors(
+							gtcv1alpha1.Interceptor{
+								Fault: &gtcv1alpha1.FaultInterceptor{
+									Delay: &gtcv1alpha1.FaultDelay{
+										Fixed: tr.DurationPtr(500 * time.Millisecond),
+										Percentage: &gtcv1alpha1.Fraction{
+											Numerator:   100,
+											Denominator: "hundred",
+										},
+									},
+								},
+							},
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.ExceedDelay(
+				200*time.Millisecond,
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.NoCallErrors,
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "listener interceptors delay injection",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+						tr.WithInterceptors(
+							gtcv1alpha1.Interceptor{
+								Fault: &gtcv1alpha1.FaultInterceptor{
+									Delay: &gtcv1alpha1.FaultDelay{
+										Metadata: &gtcv1alpha1.MetadataFault{},
+										Percentage: &gtcv1alpha1.Fraction{
+											Numerator:   100,
+											Denominator: "hundred",
+										},
+									},
+								},
+							},
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.ExceedDelay(
+				200*time.Millisecond,
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(
+							map[string]string{
+								// Delay by 500ms.
+								"x-envoy-fault-delay-request": "500",
+							},
+						),
+					),
+					tr.NoCallErrors,
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "listener interceptors abort injection grpc",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+						tr.WithInterceptors(
+							gtcv1alpha1.Interceptor{
+								Fault: &gtcv1alpha1.FaultInterceptor{
+									Abort: &gtcv1alpha1.FaultAbort{
+										Status: tr.Ptr(uint32(4)),
+										Percentage: &gtcv1alpha1.Fraction{
+											Numerator:   100,
+											Denominator: "hundred",
+										},
+									},
+								},
+							},
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.MustFail,
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "listerner interceptors abort metadata grpc",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+						tr.WithInterceptors(
+							gtcv1alpha1.Interceptor{
+								Fault: &gtcv1alpha1.FaultInterceptor{
+									Abort: &gtcv1alpha1.FaultAbort{
+										Metadata: &gtcv1alpha1.MetadataFault{},
+										Percentage: &gtcv1alpha1.Fraction{
+											Numerator:   100,
+											Denominator: "hundred",
+										},
+									},
+								},
+							},
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+					tr.WithMetadata(
+						map[string]string{
+							"x-envoy-fault-abort-grpc-request": "3",
+						},
+					),
+				),
+				tr.MustFail,
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "update single call service",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(
+						serviceNameV1,
+						defaultNamespace,
+						backends[0:1],
+					),
+					tr.BuildEndpointSlices(
+						serviceNameV2,
+						defaultNamespace,
+						backends[1:2],
+					),
+				)
+			},
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
+			),
+			updateResources: func(t *testing.T, k8s tr.FakeK8s, _ []tr.Backend) {
+				// We switch the backend to v2, which means that backend pod should point to a new instance.
+				_, err := k8s.GTCApi.ApiV1alpha1().GRPCListeners("default").Update(
+					context.Background(),
+					tr.Ptr(
+						tr.BuildGRPCListener(
+							"test-xds",
+							"default",
+							tr.WithRoutes(
+								tr.BuildRoute(
+									tr.WithBackends(
+										tr.BuildBackend(
+											tr.WithServiceRef(
+												gtcv1alpha1.ServiceRef{
+													Name: serviceNameV2,
+													Port: grpcPort,
+												},
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+					metav1.UpdateOptions{},
+				)
+				require.NoError(t, err)
+			},
+			doAssertPostUpdate: tr.MultiAssert(
+				tr.Wait(500*time.Millisecond),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
+					),
+				),
+			),
+		},
+		{
+			desc:         "update single call endpointslice",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(
+						serviceNameV1,
+						defaultNamespace,
+						backends[0:1],
+					),
+				)
+			},
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
+			),
+			updateResources: func(t *testing.T, k8s tr.FakeK8s, backends []tr.Backend) {
+				// Write the same endpoints, but pointing to the backend at index 1.
+				newEps := tr.BuildEndpointSlices(serviceNameV1, defaultNamespace, backends[1:2])
 
 				for _, ep := range newEps {
 					_, err := k8s.K8s.DiscoveryV1().EndpointSlices(defaultNamespace).Update(
@@ -1837,56 +1737,131 @@ func TestServer(t *testing.T) {
 					require.NoError(t, err)
 				}
 			},
-			doAssertPostUpdate: testruntime.MultiAssert(
-				testruntime.Wait(500*time.Millisecond),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
+			doAssertPostUpdate: tr.MultiAssert(
+				tr.Wait(500*time.Millisecond),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
 					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-1", 1),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
 					),
 				),
 			),
 		},
 		{
-			desc:         "single call non existing backend",
+			desc:         "update endpointslice with localities",
 			backendCount: 2,
-			buildEndpointSlices: func(backends []testruntime.Backend) []discoveryv1.EndpointSlice {
-				return testruntime.AppendEndpointSlices(
-					testruntime.BuildEndpointSlices(
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(
 						serviceNameV1,
 						defaultNamespace,
 						backends[0:1],
 					),
 				)
 			},
-			buildGRPCListeners:  func([]testruntime.Backend) []gtcv1alpha1.GRPCListener { return nil },
-			buildCallContext:    testruntime.DefaultCallContext("xds:///default/test-xds"),
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithLocalities(
+											tr.BuildLocality(
+												tr.WithLocalityServiceRef(
+													gtcv1alpha1.ServiceRef{
+														Name: serviceNameV1,
+														Port: grpcPort,
+													},
+												),
+											),
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
 			setBackendsBehavior: answer,
-			doAssertPreUpdate: testruntime.CallOnce(
-				testruntime.BuildCaller(
-					testruntime.MethodEcho,
-					testruntime.WithTimeout(time.Second),
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
 				),
-				testruntime.MustFail,
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
 			),
-			updateResources: func(t *testing.T, k8s testruntime.FakeK8s, backends []testruntime.Backend) {
-				lis := testruntime.BuildGRPCListener(
+			updateResources: func(t *testing.T, k8s tr.FakeK8s, backends []tr.Backend) {
+				// Write the same endpoints, but pointing to the first backend.
+				newEps := tr.BuildEndpointSlices(serviceNameV1, defaultNamespace, backends[1:2])
+
+				for _, ep := range newEps {
+					_, err := k8s.K8s.DiscoveryV1().EndpointSlices(defaultNamespace).Update(
+						context.Background(),
+						ep.DeepCopy(),
+						metav1.UpdateOptions{},
+					)
+					require.NoError(t, err)
+				}
+			},
+			doAssertPostUpdate: tr.MultiAssert(
+				tr.Wait(500*time.Millisecond),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
+					),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-1", 1),
+					),
+				),
+			),
+		},
+		{
+			desc:         "update single call non existing backend",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.AppendEndpointSlices(
+					tr.BuildEndpointSlices(
+						serviceNameV1,
+						defaultNamespace,
+						backends[0:1],
+					),
+				)
+			},
+			buildGRPCListeners:  func([]tr.Backend) []gtcv1alpha1.GRPCListener { return nil },
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+					tr.WithTimeout(time.Second),
+				),
+				tr.MustFail,
+			),
+			updateResources: func(t *testing.T, k8s tr.FakeK8s, backends []tr.Backend) {
+				lis := tr.BuildGRPCListener(
 					"test-xds",
 					"default",
-					testruntime.WithRoutes(
-						testruntime.BuildSingleRoute("default"),
-					),
-					testruntime.WithClusters(
-						testruntime.BuildCluster(
-							"default",
-							testruntime.WithServiceRef(
-								gtcv1alpha1.ServiceRef{
-									Name: serviceNameV1,
-									Port: grpcPort,
-								},
+					tr.WithRoutes(
+						tr.BuildRoute(
+							tr.WithBackends(
+								tr.BuildBackend(
+									tr.WithServiceRef(
+										gtcv1alpha1.ServiceRef{
+											Name: serviceNameV1,
+											Port: grpcPort,
+										},
+									),
+								),
 							),
 						),
 					),
@@ -1899,23 +1874,23 @@ func TestServer(t *testing.T) {
 				)
 				require.NoError(t, err)
 			},
-			doAssertPostUpdate: testruntime.MultiAssert(
-				testruntime.Wait(500*time.Millisecond),
-				testruntime.CallOnce(
-					testruntime.BuildCaller(
-						testruntime.MethodEcho,
+			doAssertPostUpdate: tr.MultiAssert(
+				tr.Wait(500*time.Millisecond),
+				tr.CallOnce(
+					tr.BuildCaller(
+						tr.MethodEcho,
 					),
-					testruntime.NoCallErrors,
-					testruntime.CountByBackendID(
-						testruntime.AssertCount("backend-0", 1),
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertCount("backend-0", 1),
 					),
 				),
 			),
 		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
-			backends, err := testruntime.StartBackends(
-				testruntime.Config{
+			backends, err := tr.StartBackends(
+				tr.Config{
 					BackendCount: testCase.backendCount,
 				},
 			)
@@ -1928,7 +1903,7 @@ func TestServer(t *testing.T) {
 
 			var (
 				ctx, cancel = context.WithCancel(context.Background())
-				k8s         = testruntime.NewFakeK8s(
+				k8s         = tr.NewFakeK8s(
 					t,
 					testCase.buildGRPCListeners(backends),
 					testCase.buildEndpointSlices(backends),
@@ -1983,16 +1958,16 @@ func TestServer(t *testing.T) {
 	}
 }
 
-func noChange(*testing.T, testruntime.FakeK8s, []testruntime.Backend) {}
-func noAssert(*testing.T, *testruntime.CallContext)                   {}
+func noChange(*testing.T, tr.FakeK8s, []tr.Backend) {}
+func noAssert(*testing.T, *tr.CallContext)          {}
 
-func answer(t *testing.T, backends testruntime.Backends) {
-	backends.SetBehavior(testruntime.DefaultBehavior())
+func answer(t *testing.T, backends tr.Backends) {
+	backends.SetBehavior(tr.DefaultBehavior())
 }
 
-func hang(d time.Duration) func(t *testing.T, backends testruntime.Backends) {
-	return func(t *testing.T, backends testruntime.Backends) {
-		backends.SetBehavior(testruntime.HangBehavior(d))
+func hang(d time.Duration) func(t *testing.T, backends tr.Backends) {
+	return func(t *testing.T, backends tr.Backends) {
+		backends.SetBehavior(tr.HangBehavior(d))
 	}
 }
 

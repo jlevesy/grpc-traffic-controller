@@ -35,116 +35,13 @@ spec:
           spec:
             description: GRPCListenerSpec defines the desired state of Service
             properties:
-              clusters:
-                description: Clusters lists all the clusters defined for an GRPCListener.
-                items:
-                  description: Cluster is a group of backend servers serving the same
-                    services.
-                  properties:
-                    localities:
-                      description: Localities is a list of prioritized and weighted
-                        localities for a backend.
-                      items:
-                        description: Locality is a weighted and prioritized locality
-                          for a backend.
-                        properties:
-                          priority:
-                            description: Priority of the locality, if defined, all
-                              entries must unique for a given priority and priority
-                              should be defined without any gap.
-                            format: int32
-                            type: integer
-                          service:
-                            description: Service is a reference to a kubernetes service.
-                            properties:
-                              name:
-                                type: string
-                              namespace:
-                                type: string
-                              port:
-                                description: PortRef represents a reference to a port.
-                                  This could be done either by number or by name.
-                                maxProperties: 1
-                                properties:
-                                  name:
-                                    type: string
-                                  number:
-                                    format: int32
-                                    type: integer
-                                type: object
-                            type: object
-                          weight:
-                            default: 1
-                            description: Weight of the locality, defaults to one.
-                            format: int32
-                            type: integer
-                        type: object
-                      type: array
-                    maxRequests:
-                      description: MaxRequests qualifies the maximum number of parallel
-                        requests allowd to the upstream cluster.
-                      format: int32
-                      type: integer
-                    name:
-                      description: Name is the name of the Cluster
-                      type: string
-                    service:
-                      description: Service is a reference to a k8s service.
-                      properties:
-                        name:
-                          type: string
-                        namespace:
-                          type: string
-                        port:
-                          description: PortRef represents a reference to a port. This
-                            could be done either by number or by name.
-                          maxProperties: 1
-                          properties:
-                            name:
-                              type: string
-                            number:
-                              format: int32
-                              type: integer
-                          type: object
-                      type: object
-                  type: object
-                type: array
-              defaultCluster:
-                description: DefaulCluster allows to specify a single cluster that
-                  will catch all the calls for the given listener.
-                properties:
-                  maxRequests:
-                    description: MaxRequests qualifies the maximum number of parallel
-                      requests allowd to the upstream cluster.
-                    format: int32
-                    type: integer
-                  service:
-                    description: Service is a reference to a k8s service.
-                    properties:
-                      name:
-                        type: string
-                      namespace:
-                        type: string
-                      port:
-                        description: PortRef represents a reference to a port. This
-                          could be done either by number or by name.
-                        maxProperties: 1
-                        properties:
-                          name:
-                            type: string
-                          number:
-                            format: int32
-                            type: integer
-                        type: object
-                    type: object
-                type: object
-              filters:
-                description: Filters represent the list of filters applied in that
-                  service.
+              interceptors:
+                description: Interceptors represent the list of interceptors applied
+                  globally in this listener.
                 items:
                   properties:
                     fault:
-                      description: Fault Filter configuration.
+                      description: Fault Interceptor configuration.
                       properties:
                         abort:
                           description: Abort the call.
@@ -153,17 +50,13 @@ spec:
                               description: Returns the gRPC status code.
                               format: int32
                               type: integer
-                            header:
-                              description: Header adds a fault controlled by an HTTP
-                                header.
+                            metadata:
+                              description: Metadata adds a fault controlled by an
+                                call metadata.
                               type: object
-                            http:
-                              description: Returns the HTTP status code.
-                              format: int32
-                              type: integer
                             percentage:
                               description: Percentage controls how much this fault
-                                delay will be injected.
+                                will occur.
                               properties:
                                 denominator:
                                   default: hundred
@@ -186,13 +79,13 @@ spec:
                               description: FixedDelay adds a fixed delay before a
                                 call.
                               type: string
-                            header:
-                              description: Header adds a delay controlled by an HTTP
-                                header.
+                            metadata:
+                              description: Metadata adds a fault controlled by an
+                                call metadata.
                               type: object
                             percentage:
                               description: Percentage controls how much this fault
-                                delay will be injected.
+                                will occur.
                               properties:
                                 denominator:
                                   default: hundred
@@ -281,19 +174,79 @@ spec:
                     cluster, it allows to do HTTP level manipulation on the outgoing
                     requests as well as matching.
                   properties:
-                    caseSensitive:
-                      default: true
-                      description: Indicates if the matching should be case sensitive.
-                      type: boolean
-                    clusters:
-                      description: Cluster carries the reference to a cluster name.
+                    backends:
+                      description: Backends is the list of all backends serving that
+                        route.
                       items:
-                        description: ClusterRef is a reference to a cluter defined
-                          in the same manifest.
+                        description: Backend is a group of backend servers serving
+                          the same services.
                         properties:
-                          name:
-                            description: Name is the name of the Cluster
-                            type: string
+                          localities:
+                            description: Localities is a list of prioritized and weighted
+                              localities for a backend.
+                            items:
+                              description: Locality is a weighted and prioritized
+                                locality for a backend.
+                              properties:
+                                priority:
+                                  description: Priority of the locality, if defined,
+                                    all entries must unique for a given priority and
+                                    priority should be defined without any gap.
+                                  format: int32
+                                  type: integer
+                                service:
+                                  description: Service is a reference to a kubernetes
+                                    service.
+                                  properties:
+                                    name:
+                                      type: string
+                                    namespace:
+                                      type: string
+                                    port:
+                                      description: PortRef represents a reference
+                                        to a port. This could be done either by number
+                                        or by name.
+                                      maxProperties: 1
+                                      properties:
+                                        name:
+                                          type: string
+                                        number:
+                                          format: int32
+                                          type: integer
+                                      type: object
+                                  type: object
+                                weight:
+                                  default: 1
+                                  description: Weight of the locality, defaults to
+                                    one.
+                                  format: int32
+                                  type: integer
+                              type: object
+                            type: array
+                          maxRequests:
+                            description: MaxRequests qualifies the maximum number
+                              of parallel requests allowd to the upstream cluster.
+                            format: int32
+                            type: integer
+                          service:
+                            description: Service is a reference to a k8s service.
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                              port:
+                                description: PortRef represents a reference to a port.
+                                  This could be done either by number or by name.
+                                maxProperties: 1
+                                properties:
+                                  name:
+                                    type: string
+                                  number:
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
                           weight:
                             default: 1
                             description: Weight is the weight of this cluster.
@@ -301,22 +254,6 @@ spec:
                             type: integer
                         type: object
                       type: array
-                    fraction:
-                      description: Only handle a fraction of matching requests.
-                      properties:
-                        denominator:
-                          default: hundred
-                          description: Denominator of the fration.
-                          enum:
-                          - hundred
-                          - ten_thousand
-                          - million
-                          type: string
-                        numerator:
-                          description: Numerator of the fraction
-                          format: int32
-                          type: integer
-                      type: object
                     grpcTimeoutHeaderMax:
                       description: Specifies the maximum duration allowed for streams
                         on the route. If present, and the request contains a `grpc-timeout
@@ -325,86 +262,103 @@ spec:
                         applied timeout to the maximum value specified here. If set
                         to 0, the `grpc-timeout` header is used without modification.
                       type: string
-                    headers:
-                      description: Headers allows to match on a specific set of headers.
-                      items:
-                        description: HeaderMatcher indicates a match based on an http
-                          header.
-                        properties:
-                          exact:
-                            description: Match the exact value of a header.
-                            type: string
-                          invert:
-                            description: Invert that header match.
-                            type: boolean
-                          name:
-                            description: Name of the header to match.
-                            type: string
-                          prefix:
-                            description: Header value must have a prefix.
-                            type: string
-                          present:
-                            description: Header must be present.
-                            type: boolean
-                          range:
-                            description: Header Value must match a range.
-                            properties:
-                              end:
-                                description: End of the range (exclusive)
-                                format: int64
-                                type: integer
-                              start:
-                                description: Start of the range (inclusive)
-                                format: int64
-                                type: integer
-                            type: object
-                          regex:
-                            description: Match a regex. Must match the whole value.
-                            properties:
-                              engine:
-                                default: re2
-                                description: The regexp engine to use.
-                                enum:
-                                - re2
-                                type: string
-                              regex:
-                                description: Regexp to evaluate the path against.
-                                type: string
-                            type: object
-                          suffix:
-                            description: Header value must have a suffix.
-                            type: string
-                        type: object
-                      type: array
-                    maxStreamDuration:
-                      description: Specifies the maximum duration allowed for streams
-                        on the route.
-                      type: string
-                    path:
-                      description: Path allows to specfies path matcher for a specific
-                        route.
+                    matcher:
                       properties:
-                        path:
-                          description: Path Must match exactly.
-                          type: string
-                        prefix:
-                          default: /
-                          description: Path Must match the prefix of the request.
-                          type: string
-                        regex:
-                          description: Path Must Match a Regex.
+                        fraction:
+                          description: Fraction allows to match a certain percentage
+                            of calls.
                           properties:
-                            engine:
-                              default: re2
-                              description: The regexp engine to use.
+                            denominator:
+                              default: hundred
+                              description: Denominator of the fration.
                               enum:
-                              - re2
+                              - hundred
+                              - ten_thousand
+                              - million
                               type: string
-                            regex:
-                              description: Regexp to evaluate the path against.
+                            numerator:
+                              description: Numerator of the fraction
+                              format: int32
+                              type: integer
+                          type: object
+                        metadata:
+                          description: Metadata allows to match on a specific set
+                            of call metadata.
+                          items:
+                            properties:
+                              exact:
+                                description: Match the exact value of a header.
+                                type: string
+                              invert:
+                                description: Invert that header match.
+                                type: boolean
+                              name:
+                                description: Name of the metadata to match.
+                                type: string
+                              prefix:
+                                description: Header value must have a prefix.
+                                type: string
+                              present:
+                                description: Header must be present.
+                                type: boolean
+                              range:
+                                description: Header Value must match a range.
+                                properties:
+                                  end:
+                                    description: End of the range (exclusive)
+                                    format: int64
+                                    type: integer
+                                  start:
+                                    description: Start of the range (inclusive)
+                                    format: int64
+                                    type: integer
+                                type: object
+                              regex:
+                                description: Match a regex. Must match the whole value.
+                                properties:
+                                  engine:
+                                    default: re2
+                                    description: The regexp engine to use.
+                                    enum:
+                                    - re2
+                                    type: string
+                                  regex:
+                                    description: Regexp to evaluate the path against.
+                                    type: string
+                                type: object
+                              suffix:
+                                description: Header value must have a suffix.
+                                type: string
+                            type: object
+                          type: array
+                        method:
+                          description: Method allows to match a specific method of
+                            a grpc service.
+                          properties:
+                            method:
+                              type: string
+                            namespace:
+                              type: string
+                            service:
+                              type: string
+                          type: object
+                        namespace:
+                          description: Namespace allows to match a specific namespace.
+                          type: string
+                        service:
+                          description: Service allows to match a specific service.
+                          properties:
+                            namespace:
+                              type: string
+                            service:
                               type: string
                           type: object
                       type: object
+                    maxStreamDuration:
+                      description: Only handle a fraction of matching requests. RuntimeFraction
+                        *Fraction `json:"fraction,omitempty"` Specifies the maximum
+                        duration allowed for streams on the route.
+                      type: string
                   type: object
                 type: array
             type: object

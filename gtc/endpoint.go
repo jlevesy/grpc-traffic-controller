@@ -7,7 +7,6 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	endpointv3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	anyv1 "github.com/golang/protobuf/ptypes/any"
 	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -23,69 +22,63 @@ type endpointHandler struct {
 }
 
 func (h *endpointHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
-	var (
-		versions []string
-		response = resolveResponse{
-			typeURL:   resourcesv3.EndpointType,
-			resources: make([]*anyv1.Any, len(req.resourceNames)),
-		}
-	)
+	response := newResolveResponse(resourcesv3.EndpointType, len(req.resourceNames))
+
 	for i, resourceName := range req.resourceNames {
-		ref, err := parseXDSResourceName(resourceName)
+		backendRef, err := parseBackendName(resourceName)
 		if err != nil {
 			return nil, err
 		}
 
-		listeners, err := h.grpcListeners.GRPCListeners(ref.Namespace).Get(ref.ListenerName)
+		listeners, err := h.grpcListeners.GRPCListeners(backendRef.Namespace).Get(backendRef.ListenerName)
 		if err != nil {
 			return nil, err
 		}
 
-		versions = append(versions, listeners.ResourceVersion)
+		if err := response.useResourceVersion(listeners.ResourceVersion); err != nil {
+			return nil, err
+		}
 
-		cl, err := extractClusterSpec(ref.ResourceName, listeners)
+		backend, err := findBackendSpec(backendRef, listeners)
 		if err != nil {
 			return nil, err
 		}
 
-		eps, slicesVersions, err := h.makeLoadAssignment(listeners, cl)
+		eps, slicesVersions, err := h.makeLoadAssignment(backendRef, listeners, backend)
 		if err != nil {
 			return nil, err
 		}
-
-		versions = append(versions, slicesVersions...)
 
 		response.resources[i], err = encodeResource(req.typeUrl, eps)
 		if err != nil {
 			return nil, err
 		}
+
+		for _, v := range slicesVersions {
+			if err := response.useResourceVersion(v); err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	var err error
-
-	response.versionInfo, err = computeVersionInfo(versions)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
+	return response, nil
 }
 
-func (h *endpointHandler) makeLoadAssignment(listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeLoadAssignment(backendRef parsedBackendName, listener *gtcv1alpha1.GRPCListener, backendSpec gtcv1alpha1.Backend) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	switch {
-	case clusterSpec.Service != nil:
-		return h.makeServiceLoadAssignment(listener, clusterSpec)
-	case len(clusterSpec.Localities) > 0:
-		return h.makeLocalitiesLoadAssignment(listener, clusterSpec)
+	case backendSpec.Service != nil:
+		return h.makeServiceLoadAssignment(backendRef, listener, backendSpec)
+	case len(backendSpec.Localities) > 0:
+		return h.makeLocalitiesLoadAssignment(backendRef, listener, backendSpec)
 	default:
 		return nil, nil, errors.New("unsupported non k8s service locality")
 	}
 }
 
-func (h *endpointHandler) makeLocalitiesLoadAssignment(listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeLocalitiesLoadAssignment(backendRef parsedBackendName, listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Backend) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	var (
 		result = endpoint.ClusterLoadAssignment{
-			ClusterName: clusterName(listener.Namespace, listener.Name, clusterSpec.Name),
+			ClusterName: backendRef.String(),
 			Endpoints:   make([]*endpointv3.LocalityLbEndpoints, len(clusterSpec.Localities)),
 		}
 
@@ -127,9 +120,9 @@ func (h *endpointHandler) makeLocalitiesLoadAssignment(listener *gtcv1alpha1.GRP
 	return &result, versions, nil
 }
 
-func (h *endpointHandler) makeServiceLoadAssignment(listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeServiceLoadAssignment(backendRef parsedBackendName, listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Backend) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	result := endpoint.ClusterLoadAssignment{
-		ClusterName: clusterName(listener.Namespace, listener.Name, clusterSpec.Name),
+		ClusterName: backendRef.String(),
 	}
 
 	ns := clusterSpec.Service.Namespace

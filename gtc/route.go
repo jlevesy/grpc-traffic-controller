@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -13,32 +13,15 @@ import (
 )
 
 func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*route.RouteConfiguration, error) {
-	var (
-		routeSpecs = listener.Spec.Routes
-		routesLen  = len(listener.Spec.Routes)
-	)
+	routes := make([]*route.Route, len(listener.Spec.Routes))
 
-	// If the listener has no route, then populate a default one that points to the default clusterRef.
-	if len(listener.Spec.Routes) == 0 {
-		routesLen = 1
-		routeSpecs = []gtcv1alpha1.Route{
-			{
-				Clusters: []gtcv1alpha1.ClusterRef{
-					{Name: "default", Weight: 1},
-				},
-			},
-		}
-	}
-
-	routes := make([]*route.Route, routesLen)
-
-	for i, routeSpec := range routeSpecs {
+	for routeID, routeSpec := range listener.Spec.Routes {
 		match, err := makeRouteMatch(routeSpec)
 		if err != nil {
 			return nil, err
 		}
 
-		routes[i] = &route.Route{
+		routes[routeID] = &route.Route{
 			Match: match,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
@@ -47,7 +30,12 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 						GrpcTimeoutHeaderMax: makeDuration(routeSpec.GrpcTimeoutHeaderMax),
 					},
 					ClusterSpecifier: &route.RouteAction_WeightedClusters{
-						WeightedClusters: makeWeightedClusters(listener.Namespace, listener.Name, routeSpec),
+						WeightedClusters: makeWeightedClusters(
+							listener.Namespace,
+							listener.Name,
+							routeID,
+							routeSpec,
+						),
 					},
 				},
 			},
@@ -67,48 +55,53 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 	}, nil
 }
 
+var matchAll = route.RouteMatch{
+	PathSpecifier: &route.RouteMatch_Prefix{
+		Prefix: "/",
+	},
+}
+
 func makeRouteMatch(spec gtcv1alpha1.Route) (*route.RouteMatch, error) {
+	if spec.Matcher == nil {
+		return &matchAll, nil
+	}
+
 	var match route.RouteMatch
 
 	switch {
-	case spec.Path.Regex != nil:
-		regexMatcher, err := makeRegexMatcher(spec.Path.Regex)
-		if err != nil {
-			return nil, err
-		}
-
-		match.PathSpecifier = &route.RouteMatch_SafeRegex{
-			SafeRegex: regexMatcher,
-		}
-
-	case spec.Path.Path != "":
+	case spec.Matcher.Method != nil:
 		match.PathSpecifier = &route.RouteMatch_Path{
-			Path: spec.Path.Path,
+			Path: spec.Matcher.Method.Path(),
+		}
+	case spec.Matcher.Service != nil:
+		match.PathSpecifier = &route.RouteMatch_Prefix{
+			Prefix: spec.Matcher.Service.Prefix(),
+		}
+	case spec.Matcher.Namespace != nil:
+		match.PathSpecifier = &route.RouteMatch_Prefix{
+			Prefix: "/" + *spec.Matcher.Namespace,
 		}
 	default:
-		match.PathSpecifier = &route.RouteMatch_Prefix{
-			Prefix: spec.Path.Prefix,
-		}
+		match.PathSpecifier = matchAll.PathSpecifier
 	}
 
-	match.CaseSensitive = wrapperspb.Bool(spec.CaseSensitive)
-	match.Headers = make([]*route.HeaderMatcher, len(spec.Headers))
-
-	if spec.RuntimeFraction != nil {
-		fraction, err := makeFractionalPercent(spec.RuntimeFraction)
+	if spec.Matcher.Fraction != nil {
+		fraction, err := makeFractionalPercent(spec.Matcher.Fraction)
 		if err != nil {
 			return nil, err
 		}
 
-		match.RuntimeFraction = &core.RuntimeFractionalPercent{
+		match.RuntimeFraction = &corev3.RuntimeFractionalPercent{
 			DefaultValue: fraction,
 		}
 	}
 
-	for i, headerMatcherSpec := range spec.Headers {
+	match.Headers = make([]*route.HeaderMatcher, len(spec.Matcher.Metadata))
+
+	for i, metadataMatcherSpec := range spec.Matcher.Metadata {
 		var err error
 
-		match.Headers[i], err = makeHeaderMatcher(headerMatcherSpec)
+		match.Headers[i], err = makeMetadataMatcher(metadataMatcherSpec)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +110,7 @@ func makeRouteMatch(spec gtcv1alpha1.Route) (*route.RouteMatch, error) {
 	return &match, nil
 }
 
-func makeHeaderMatcher(spec gtcv1alpha1.HeaderMatcher) (*route.HeaderMatcher, error) {
+func makeMetadataMatcher(spec gtcv1alpha1.MetadataMatcher) (*route.HeaderMatcher, error) {
 	matcher := route.HeaderMatcher{
 		Name:        spec.Name,
 		InvertMatch: spec.Invert,
@@ -158,7 +151,6 @@ func makeHeaderMatcher(spec gtcv1alpha1.HeaderMatcher) (*route.HeaderMatcher, er
 		}
 	default:
 		return nil, errors.New("invalid header matcher")
-
 	}
 
 	return &matcher, nil
@@ -181,17 +173,17 @@ func makeRegexMatcher(spec *gtcv1alpha1.RegexMatcher) (*matcher.RegexMatcher, er
 	}, nil
 }
 
-func makeWeightedClusters(namespace, name string, routeSpec gtcv1alpha1.Route) *route.WeightedCluster {
+func makeWeightedClusters(namespace, name string, routeID int, routeSpec gtcv1alpha1.Route) *route.WeightedCluster {
 	var (
 		totalWeight     uint32
-		weighedClusters = make([]*route.WeightedCluster_ClusterWeight, len(routeSpec.Clusters))
+		weighedClusters = make([]*route.WeightedCluster_ClusterWeight, len(routeSpec.Backends))
 	)
 
-	for i, clusterRef := range routeSpec.Clusters {
-		totalWeight += clusterRef.Weight
-		weighedClusters[i] = &route.WeightedCluster_ClusterWeight{
-			Name:   clusterName(namespace, name, clusterRef.Name),
-			Weight: wrapperspb.UInt32(clusterRef.Weight),
+	for backendID, backend := range routeSpec.Backends {
+		totalWeight += backend.Weight
+		weighedClusters[backendID] = &route.WeightedCluster_ClusterWeight{
+			Name:   backendName(namespace, name, routeID, backendID),
+			Weight: wrapperspb.UInt32(backend.Weight),
 		}
 	}
 
