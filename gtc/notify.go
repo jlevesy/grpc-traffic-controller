@@ -12,51 +12,51 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-type xdsServiceChangedHandler struct {
+type grpcListenerChangedHandler struct {
 	watches *watches
 	logger  *zap.Logger
 }
 
-func (h *xdsServiceChangedHandler) OnAdd(ctx context.Context, obj any) error {
+func (h *grpcListenerChangedHandler) OnAdd(ctx context.Context, obj any) error {
 	return h.handle(ctx, obj)
 }
 
-func (h *xdsServiceChangedHandler) OnUpdate(ctx context.Context, oldObj, newObj any) error {
+func (h *grpcListenerChangedHandler) OnUpdate(ctx context.Context, oldObj, newObj any) error {
 	// TODO(jly) be clever and detect changes if it makes sense.
 	return h.handle(ctx, newObj)
 }
 
-func (h *xdsServiceChangedHandler) OnDelete(ctx context.Context, obj any) error {
+func (h *grpcListenerChangedHandler) OnDelete(ctx context.Context, obj any) error {
 	return h.handle(ctx, obj)
 }
 
-func (h *xdsServiceChangedHandler) handle(ctx context.Context, obj any) error {
-	svc, ok := obj.(*gtcv1alpha1.XDSService)
+func (h *grpcListenerChangedHandler) handle(ctx context.Context, obj any) error {
+	lis, ok := obj.(*gtcv1alpha1.GRPCListener)
 	if !ok {
-		h.logger.Error("Invalid object type, expected an XDSService")
+		h.logger.Error("Invalid object type, expected an GRPCListener")
 		return nil
 	}
 
 	h.logger.Debug(
-		"XDS Service Changed",
-		zap.String("xds_service_namespace", svc.GetNamespace()),
-		zap.String("xds_service_name", svc.GetName()),
+		"gRPC Listener Changed",
+		zap.String("grpc_listener_namespace", lis.GetNamespace()),
+		zap.String("grcp_listener_name", lis.GetName()),
 	)
 
 	h.watches.notifyChanged(
 		ctx,
 		resourceRef{
 			typeURL:      resourcesv3.ListenerType,
-			resourceName: listenerName(svc.GetNamespace(), svc.GetName()),
+			resourceName: listenerName(lis.GetNamespace(), lis.GetName()),
 		},
 	)
 
-	for _, cl := range svc.Spec.Clusters {
+	for _, cl := range lis.Spec.Clusters {
 		h.watches.notifyChanged(
 			ctx,
 			resourceRef{
 				typeURL:      resourcesv3.ClusterType,
-				resourceName: clusterName(svc.GetNamespace(), svc.GetName(), cl.Name),
+				resourceName: clusterName(lis.GetNamespace(), lis.GetName(), cl.Name),
 			},
 		)
 
@@ -64,7 +64,7 @@ func (h *xdsServiceChangedHandler) handle(ctx context.Context, obj any) error {
 			ctx,
 			resourceRef{
 				typeURL:      resourcesv3.EndpointType,
-				resourceName: clusterName(svc.GetNamespace(), svc.GetName(), cl.Name),
+				resourceName: clusterName(lis.GetNamespace(), lis.GetName(), cl.Name),
 			},
 		)
 	}
@@ -76,7 +76,7 @@ type endpointSliceChangedHandler struct {
 	watches *watches
 	logger  *zap.Logger
 
-	servicesLister gtclisters.XDSServiceLister
+	listenersLister gtclisters.GRPCListenerLister
 }
 
 func (h *endpointSliceChangedHandler) OnAdd(ctx context.Context, obj any) error {
@@ -99,21 +99,21 @@ func (h *endpointSliceChangedHandler) handle(ctx context.Context, obj any) error
 		return err
 	}
 
-	svcs, err := h.servicesLister.List(labels.Everything())
+	listeners, err := h.listenersLister.List(labels.Everything())
 	if err != nil {
-		h.logger.Error("Could not list XDS services", zap.Error(err))
+		h.logger.Error("Could not list gRPC listeners", zap.Error(err))
 		return err
 	}
 
 	// O(n) accross all services isn't good. Yet that's the price of maintaining cross namespace localities.
 	// Dropping this feature would allow us to narrow down the list of services to lookup by namespace.
-	for _, svc := range svcs {
-		for _, cl := range svc.Spec.Clusters {
-			if matchesCluster(objMeta, svc, cl) {
+	for _, lis := range listeners {
+		for _, cl := range lis.Spec.Clusters {
+			if matchesCluster(objMeta, lis, cl) {
 				h.logger.Debug(
 					"Endpoint changed",
-					zap.String("xds_service_namespace", svc.GetNamespace()),
-					zap.String("xds_service_name", svc.GetName()),
+					zap.String("grpc_listener_namespace", lis.GetNamespace()),
+					zap.String("grpc_listener_name", lis.GetName()),
 					zap.String("endpoint_name", objMeta.GetName()),
 					zap.String("endpoint_namespace", objMeta.GetNamespace()),
 				)
@@ -123,8 +123,8 @@ func (h *endpointSliceChangedHandler) handle(ctx context.Context, obj any) error
 					resourceRef{
 						typeURL: resourcesv3.EndpointType,
 						resourceName: clusterName(
-							svc.GetNamespace(),
-							svc.GetName(),
+							lis.GetNamespace(),
+							lis.GetName(),
 							cl.Name,
 						),
 					},
@@ -136,13 +136,13 @@ func (h *endpointSliceChangedHandler) handle(ctx context.Context, obj any) error
 	return nil
 }
 
-func matchesCluster(epSlice metav1.Object, xdsSvc *gtcv1alpha1.XDSService, cluster gtcv1alpha1.Cluster) bool {
+func matchesCluster(epSlice metav1.Object, listener *gtcv1alpha1.GRPCListener, cluster gtcv1alpha1.Cluster) bool {
 	switch {
 	case cluster.Service != nil:
-		return matchesService(epSlice, xdsSvc, cluster.Service)
+		return matchesService(epSlice, listener, cluster.Service)
 	case len(cluster.Localities) > 0:
 		for _, loc := range cluster.Localities {
-			if matchesService(epSlice, xdsSvc, loc.Service) {
+			if matchesService(epSlice, listener, loc.Service) {
 				return true
 			}
 		}
@@ -153,12 +153,12 @@ func matchesCluster(epSlice metav1.Object, xdsSvc *gtcv1alpha1.XDSService, clust
 	}
 }
 
-func matchesService(epSlice metav1.Object, xdsSvc *gtcv1alpha1.XDSService, svc *gtcv1alpha1.ServiceRef) bool {
+func matchesService(epSlice metav1.Object, listener *gtcv1alpha1.GRPCListener, serviceRef *gtcv1alpha1.ServiceRef) bool {
 	// If the name doesn't match then we're out.
-	if svcName := epSlice.GetLabels()["kubernetes.io/service-name"]; svcName != svc.Name {
+	if svcName := epSlice.GetLabels()["kubernetes.io/service-name"]; svcName != serviceRef.Name {
 		return false
 	}
 
 	// If we don't have a specific namespace, then we match looking at the XDS service namespace.
-	return xdsSvc.Namespace == epSlice.GetNamespace() || (svc.Namespace != "" && svc.Namespace == epSlice.GetNamespace())
+	return listener.Namespace == epSlice.GetNamespace() || (serviceRef.Namespace != "" && serviceRef.Namespace == epSlice.GetNamespace())
 }

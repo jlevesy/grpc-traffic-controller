@@ -18,10 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
-// XDSServiceListerExpansion allows custom methods to be added to
-// XDSServiceLister.
-type XDSServiceListerExpansion interface{}
+// GRPCListenerListerExpansion allows custom methods to be added to
+// GRPCListenerLister.
+type GRPCListenerListerExpansion interface{}
 
-// XDSServiceNamespaceListerExpansion allows custom methods to be added to
-// XDSServiceNamespaceLister.
-type XDSServiceNamespaceListerExpansion interface{}
+// GRPCListenerNamespaceListerExpansion allows custom methods to be added to
+// GRPCListenerNamespaceLister.
+type GRPCListenerNamespaceListerExpansion interface{}

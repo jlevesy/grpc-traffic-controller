@@ -8,7 +8,7 @@ rules:
 - apiGroups:
   - api.gtc.dev
   resources:
-  - xdsservices
+  - grpclisteners
   verbs:
   - get
   - list

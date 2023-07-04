@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
-  name: xdsservices.api.gtc.dev
+  name: grpclisteners.api.gtc.dev
 spec:
   group: api.gtc.dev
   names:
-    kind: XDSService
-    listKind: XDSServiceList
-    plural: xdsservices
-    singular: xdsservice
+    kind: GRPCListener
+    listKind: GRPCListenerList
+    plural: grpclisteners
+    singular: grpclistener
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: XDSService is the Schema for the services API
+        description: GRPCListener is the Schema for the services API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,10 +33,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: XDSServiceSpec defines the desired state of Service
+            description: GRPCListenerSpec defines the desired state of Service
             properties:
               clusters:
-                description: Clusters lists all the clusters defined for an XDSService.
+                description: Clusters lists all the clusters defined for an GRPCListener.
                 items:
                   description: Cluster is a group of backend servers serving the same
                     services.
@@ -275,7 +275,7 @@ spec:
                   this value is not set.
                 type: string
               routes:
-                description: Routes lists all the routes defined for an XDSService.
+                description: Routes lists all the routes defined for an GRPCListener.
                 items:
                   description: Route allows to match an outoing request to a specific
                     cluster, it allows to do HTTP level manipulation on the outgoing

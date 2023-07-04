@@ -12,14 +12,14 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func makeRouteConfig(listenerName string, svc *gtcv1alpha1.XDSService) (*route.RouteConfiguration, error) {
+func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*route.RouteConfiguration, error) {
 	var (
-		routeSpecs = svc.Spec.Routes
-		routesLen  = len(svc.Spec.Routes)
+		routeSpecs = listener.Spec.Routes
+		routesLen  = len(listener.Spec.Routes)
 	)
 
-	// If the service has no route, then populate a default one that points to the default clusterRef.
-	if len(svc.Spec.Routes) == 0 {
+	// If the listener has no route, then populate a default one that points to the default clusterRef.
+	if len(listener.Spec.Routes) == 0 {
 		routesLen = 1
 		routeSpecs = []gtcv1alpha1.Route{
 			{
@@ -47,7 +47,7 @@ func makeRouteConfig(listenerName string, svc *gtcv1alpha1.XDSService) (*route.R
 						GrpcTimeoutHeaderMax: makeDuration(routeSpec.GrpcTimeoutHeaderMax),
 					},
 					ClusterSpecifier: &route.RouteAction_WeightedClusters{
-						WeightedClusters: makeWeightedClusters(svc.Namespace, svc.Name, routeSpec),
+						WeightedClusters: makeWeightedClusters(listener.Namespace, listener.Name, routeSpec),
 					},
 				},
 			},
@@ -55,11 +55,11 @@ func makeRouteConfig(listenerName string, svc *gtcv1alpha1.XDSService) (*route.R
 	}
 
 	return &route.RouteConfiguration{
-		Name:             routeConfigName(svc.Namespace, svc.Name),
+		Name:             routeConfigName(listener.Namespace, listener.Name),
 		ValidateClusters: &wrapperspb.BoolValue{Value: true},
 		VirtualHosts: []*route.VirtualHost{
 			{
-				Name:    vHostName(svc.Namespace, svc.Name),
+				Name:    vHostName(listener.Namespace, listener.Name),
 				Domains: []string{listenerName},
 				Routes:  routes,
 			},

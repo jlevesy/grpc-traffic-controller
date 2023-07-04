@@ -13,7 +13,7 @@ import (
 )
 
 type clusterHandler struct {
-	xdsServices gtclisters.XDSServiceLister
+	grpcListeners gtclisters.GRPCListenerLister
 }
 
 func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
@@ -32,12 +32,12 @@ func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, 
 			return nil, err
 		}
 
-		svc, err := h.xdsServices.XDSServices(ref.Namespace).Get(ref.ServiceName)
+		listener, err := h.grpcListeners.GRPCListeners(ref.Namespace).Get(ref.ListenerName)
 		if err != nil {
 			return nil, err
 		}
 
-		cl, err := extractClusterSpec(ref.ResourceName, svc)
+		cl, err := extractClusterSpec(ref.ResourceName, listener)
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +47,7 @@ func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, 
 			return nil, err
 		}
 
-		versions[i] = svc.ResourceVersion
+		versions[i] = listener.ResourceVersion
 	}
 
 	response.versionInfo, err = computeVersionInfo(versions)
@@ -87,29 +87,29 @@ func makeCluster(clusterName string, spec gtcv1alpha1.Cluster) *cluster.Cluster 
 	return &c
 }
 
-func extractClusterSpec(clusterName string, xdsSvc *gtcv1alpha1.XDSService) (gtcv1alpha1.Cluster, error) {
-	if xdsSvc.Spec.DefaultCluster != nil {
+func extractClusterSpec(clusterName string, listener *gtcv1alpha1.GRPCListener) (gtcv1alpha1.Cluster, error) {
+	if listener.Spec.DefaultCluster != nil {
 		return gtcv1alpha1.Cluster{
 			Name:        "default",
-			MaxRequests: xdsSvc.Spec.DefaultCluster.MaxRequests,
-			Service:     xdsSvc.Spec.DefaultCluster.Service,
+			MaxRequests: listener.Spec.DefaultCluster.MaxRequests,
+			Service:     listener.Spec.DefaultCluster.Service,
 		}, nil
 	}
 
-	for _, cl := range xdsSvc.Spec.Clusters {
+	for _, cl := range listener.Spec.Clusters {
 		if cl.Name == clusterName {
 			return cl, nil
 		}
 	}
 
-	return gtcv1alpha1.Cluster{}, &clusterNotFoundError{wantName: clusterName, svc: xdsSvc}
+	return gtcv1alpha1.Cluster{}, &clusterNotFoundError{wantName: clusterName, listener: listener}
 }
 
 type clusterNotFoundError struct {
 	wantName string
-	svc      *gtcv1alpha1.XDSService
+	listener *gtcv1alpha1.GRPCListener
 }
 
 func (c *clusterNotFoundError) Error() string {
-	return fmt.Sprintf("cluster with name %q does not exist on XDS service %s/%s", c.wantName, c.svc.Namespace, c.svc.Name)
+	return fmt.Sprintf("cluster with name %q does not exist on GRPCListener %s/%s", c.wantName, c.listener.Namespace, c.listener.Name)
 }

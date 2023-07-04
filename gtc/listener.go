@@ -13,7 +13,7 @@ import (
 )
 
 type listenerHandler struct {
-	xdsServices gtclisters.XDSServiceLister
+	grpcListeners gtclisters.GRPCListenerLister
 }
 
 func (h *listenerHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
@@ -54,24 +54,24 @@ func (h *listenerHandler) makeListener(resourceName string) (*listenerv3.Listene
 		return nil, "", err
 	}
 
-	svc, err := h.xdsServices.XDSServices(namespace).Get(name)
+	listener, err := h.grpcListeners.GRPCListeners(namespace).Get(name)
 	if err != nil {
 		return nil, "", err
 	}
 
-	filters, err := makeFilters(svc.Spec.Filters)
+	filters, err := makeFilters(listener.Spec.Filters)
 	if err != nil {
 		return nil, "", err
 	}
 
-	routeConfig, err := makeRouteConfig(resourceName, svc)
+	routeConfig, err := makeRouteConfig(resourceName, listener)
 	if err != nil {
 		return nil, "", err
 	}
 
 	httpConnManager := &hcm.HttpConnectionManager{
 		CommonHttpProtocolOptions: &core.HttpProtocolOptions{
-			MaxStreamDuration: makeDuration(svc.Spec.MaxStreamDuration),
+			MaxStreamDuration: makeDuration(listener.Spec.MaxStreamDuration),
 		},
 		RouteSpecifier: &hcm.HttpConnectionManager_RouteConfig{
 			RouteConfig: routeConfig,
@@ -84,7 +84,7 @@ func (h *listenerHandler) makeListener(resourceName string) (*listenerv3.Listene
 		ApiListener: &listenerv3.ApiListener{
 			ApiListener: mustAny(httpConnManager),
 		},
-	}, svc.ResourceVersion, nil
+	}, listener.ResourceVersion, nil
 }
 
 func parseListenerName(resourceName string) (string, string, error) {

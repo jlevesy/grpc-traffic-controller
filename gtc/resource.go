@@ -23,7 +23,7 @@ func clusterName(namespace, name, clusterName string) string {
 
 type xdsResourceName struct {
 	Namespace    string
-	ServiceName  string
+	ListenerName string
 	ResourceName string
 }
 
@@ -40,7 +40,7 @@ func parseXDSResourceName(resourceName string) (xdsResourceName, error) {
 
 	return xdsResourceName{
 		Namespace:    sp[1],
-		ServiceName:  sp[2],
+		ListenerName: sp[2],
 		ResourceName: sp[3],
 	}, nil
 }

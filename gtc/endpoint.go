@@ -18,7 +18,7 @@ import (
 )
 
 type endpointHandler struct {
-	xdsServices    gtclisters.XDSServiceLister
+	grpcListeners  gtclisters.GRPCListenerLister
 	endpointSlices discoveryv1listers.EndpointSliceLister
 }
 
@@ -36,19 +36,19 @@ func (h *endpointHandler) resolveResource(req resolveRequest) (*resolveResponse,
 			return nil, err
 		}
 
-		svc, err := h.xdsServices.XDSServices(ref.Namespace).Get(ref.ServiceName)
+		listeners, err := h.grpcListeners.GRPCListeners(ref.Namespace).Get(ref.ListenerName)
 		if err != nil {
 			return nil, err
 		}
 
-		versions = append(versions, svc.ResourceVersion)
+		versions = append(versions, listeners.ResourceVersion)
 
-		cl, err := extractClusterSpec(ref.ResourceName, svc)
+		cl, err := extractClusterSpec(ref.ResourceName, listeners)
 		if err != nil {
 			return nil, err
 		}
 
-		eps, slicesVersions, err := h.makeLoadAssignment(svc, cl)
+		eps, slicesVersions, err := h.makeLoadAssignment(listeners, cl)
 		if err != nil {
 			return nil, err
 		}
@@ -71,21 +71,21 @@ func (h *endpointHandler) resolveResource(req resolveRequest) (*resolveResponse,
 	return &response, nil
 }
 
-func (h *endpointHandler) makeLoadAssignment(svc *gtcv1alpha1.XDSService, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeLoadAssignment(listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	switch {
 	case clusterSpec.Service != nil:
-		return h.makeServiceLoadAssignment(svc, clusterSpec)
+		return h.makeServiceLoadAssignment(listener, clusterSpec)
 	case len(clusterSpec.Localities) > 0:
-		return h.makeLocalitiesLoadAssignment(svc, clusterSpec)
+		return h.makeLocalitiesLoadAssignment(listener, clusterSpec)
 	default:
 		return nil, nil, errors.New("unsupported non k8s service locality")
 	}
 }
 
-func (h *endpointHandler) makeLocalitiesLoadAssignment(svc *gtcv1alpha1.XDSService, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeLocalitiesLoadAssignment(listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	var (
 		result = endpoint.ClusterLoadAssignment{
-			ClusterName: clusterName(svc.Namespace, svc.Name, clusterSpec.Name),
+			ClusterName: clusterName(listener.Namespace, listener.Name, clusterSpec.Name),
 			Endpoints:   make([]*endpointv3.LocalityLbEndpoints, len(clusterSpec.Localities)),
 		}
 
@@ -95,7 +95,7 @@ func (h *endpointHandler) makeLocalitiesLoadAssignment(svc *gtcv1alpha1.XDSServi
 	for i, loc := range clusterSpec.Localities {
 		ns := loc.Service.Namespace
 		if ns == "" {
-			ns = svc.Namespace
+			ns = listener.Namespace
 		}
 
 		req, err := labels.NewRequirement(
@@ -127,14 +127,14 @@ func (h *endpointHandler) makeLocalitiesLoadAssignment(svc *gtcv1alpha1.XDSServi
 	return &result, versions, nil
 }
 
-func (h *endpointHandler) makeServiceLoadAssignment(svc *gtcv1alpha1.XDSService, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
+func (h *endpointHandler) makeServiceLoadAssignment(listener *gtcv1alpha1.GRPCListener, clusterSpec gtcv1alpha1.Cluster) (*endpointv3.ClusterLoadAssignment, []string, error) {
 	result := endpoint.ClusterLoadAssignment{
-		ClusterName: clusterName(svc.Namespace, svc.Name, clusterSpec.Name),
+		ClusterName: clusterName(listener.Namespace, listener.Name, clusterSpec.Name),
 	}
 
 	ns := clusterSpec.Service.Namespace
 	if ns == "" {
-		ns = svc.Namespace
+		ns = listener.Namespace
 	}
 
 	req, err := labels.NewRequirement(
@@ -169,11 +169,11 @@ func (h *endpointHandler) makeServiceLoadAssignment(svc *gtcv1alpha1.XDSService,
 	return &result, versions, nil
 }
 
-func makeFlatLocalityLbEndpoints(svcRef gtcv1alpha1.ServiceRef, epSlices []*kdiscoveryv1.EndpointSlice, weight, priority uint32) (*endpoint.LocalityLbEndpoints, error) {
+func makeFlatLocalityLbEndpoints(serviceRef gtcv1alpha1.ServiceRef, epSlices []*kdiscoveryv1.EndpointSlice, weight, priority uint32) (*endpoint.LocalityLbEndpoints, error) {
 	var xdsEndpoints []*endpoint.LbEndpoint
 
 	for _, epSlice := range epSlices {
-		port, ok := lookupK8sPort(svcRef.Port, epSlice.Ports)
+		port, ok := lookupK8sPort(serviceRef.Port, epSlice.Ports)
 		if !ok {
 			return nil, errors.New("no desired port found on the k8s endpoint slice")
 		}
@@ -192,7 +192,7 @@ func makeFlatLocalityLbEndpoints(svcRef gtcv1alpha1.ServiceRef, epSlices []*kdis
 	}
 
 	return &endpoint.LocalityLbEndpoints{
-		Locality:            &core.Locality{SubZone: svcRef.Name},
+		Locality:            &core.Locality{SubZone: serviceRef.Name},
 		LoadBalancingWeight: wrapperspb.UInt32(weight),
 		Priority:            priority,
 		LbEndpoints:         xdsEndpoints,

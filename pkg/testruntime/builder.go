@@ -195,40 +195,40 @@ func BuildSingleRoute(clusterName string) gtcv1alpha1.Route {
 	)
 }
 
-type XDSServiceOpt func(s *gtcv1alpha1.XDSService)
+type GRPCListenerOpt func(s *gtcv1alpha1.GRPCListener)
 
-func WithFilters(fs ...gtcv1alpha1.Filter) XDSServiceOpt {
-	return func(s *gtcv1alpha1.XDSService) {
+func WithFilters(fs ...gtcv1alpha1.Filter) GRPCListenerOpt {
+	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.Filters = fs
 	}
 }
 
-func WithRoutes(rs ...gtcv1alpha1.Route) XDSServiceOpt {
-	return func(s *gtcv1alpha1.XDSService) {
+func WithRoutes(rs ...gtcv1alpha1.Route) GRPCListenerOpt {
+	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.Routes = rs
 	}
 }
 
-func WithClusters(cs ...gtcv1alpha1.Cluster) XDSServiceOpt {
-	return func(s *gtcv1alpha1.XDSService) {
+func WithClusters(cs ...gtcv1alpha1.Cluster) GRPCListenerOpt {
+	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.Clusters = cs
 	}
 }
 
-func WithMaxStreamDuration(d time.Duration) XDSServiceOpt {
-	return func(s *gtcv1alpha1.XDSService) {
+func WithMaxStreamDuration(d time.Duration) GRPCListenerOpt {
+	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.MaxStreamDuration = &metav1.Duration{Duration: d}
 	}
 }
 
-func WithDefaultCluster(l gtcv1alpha1.DefaultCluster) XDSServiceOpt {
-	return func(s *gtcv1alpha1.XDSService) {
+func WithDefaultCluster(l gtcv1alpha1.DefaultCluster) GRPCListenerOpt {
+	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.DefaultCluster = &l
 	}
 }
 
-func BuildXDSService(name, namespace string, opts ...XDSServiceOpt) gtcv1alpha1.XDSService {
-	s := gtcv1alpha1.XDSService{
+func BuildGRPCListener(name, namespace string, opts ...GRPCListenerOpt) gtcv1alpha1.GRPCListener {
+	s := gtcv1alpha1.GRPCListener{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

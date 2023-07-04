@@ -28,8 +28,8 @@ type FakeApiV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeApiV1alpha1) XDSServices(namespace string) v1alpha1.XDSServiceInterface {
-	return &FakeXDSServices{c, namespace}
+func (c *FakeApiV1alpha1) GRPCListeners(namespace string) v1alpha1.GRPCListenerInterface {
+	return &FakeGRPCListeners{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

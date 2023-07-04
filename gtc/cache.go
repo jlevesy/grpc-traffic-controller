@@ -19,15 +19,15 @@ type configWatcher struct {
 	logger *zap.Logger
 }
 
-func newConfigWatcher(endpointSlicesLister discoveryv1listers.EndpointSliceLister, xdsServicesLister gtclisters.XDSServiceLister, watches watchBuilder, logger *zap.Logger) *configWatcher {
+func newConfigWatcher(endpointSlicesLister discoveryv1listers.EndpointSliceLister, grpcListenersLister gtclisters.GRPCListenerLister, watches watchBuilder, logger *zap.Logger) *configWatcher {
 	return &configWatcher{
 		logger:       logger.With(zap.String("component", "config_watcher")),
 		watchBuilder: watches,
 		resolver: resourceTypeResolver{
-			resourcesv3.ListenerType: &listenerHandler{xdsServices: xdsServicesLister},
-			resourcesv3.ClusterType:  &clusterHandler{xdsServices: xdsServicesLister},
+			resourcesv3.ListenerType: &listenerHandler{grpcListeners: grpcListenersLister},
+			resourcesv3.ClusterType:  &clusterHandler{grpcListeners: grpcListenersLister},
 			resourcesv3.EndpointType: &endpointHandler{
-				xdsServices:    xdsServicesLister,
+				grpcListeners:  grpcListenersLister,
 				endpointSlices: endpointSlicesLister,
 			},
 		},

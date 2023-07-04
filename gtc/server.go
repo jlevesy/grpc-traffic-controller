@@ -37,7 +37,7 @@ type XDSServer struct {
 	server   *grpc.Server
 	logger   *zap.Logger
 
-	xdsServiceChangedQueue    *controllersupport.QueuedEventHandler
+	grpcListenerChangedQueue  *controllersupport.QueuedEventHandler
 	endpointSliceChangedQueue *controllersupport.QueuedEventHandler
 }
 
@@ -63,31 +63,31 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 			ctx,
 			newConfigWatcher(
 				cfg.K8sInformers.Discovery().V1().EndpointSlices().Lister(),
-				cfg.GTCInformers.Api().V1alpha1().XDSServices().Lister(),
+				cfg.GTCInformers.Api().V1alpha1().GRPCListeners().Lister(),
 				watches,
 				logger,
 			),
 			&loggerCallbacks{l: logger},
 		)
 
-		xdsServiceChangedQueue = controllersupport.NewQueuedEventHandler(
-			&xdsServiceChangedHandler{
+		grpcListenerChangedQueue = controllersupport.NewQueuedEventHandler(
+			&grpcListenerChangedHandler{
 				watches: watches,
 				logger:  logger,
 			},
 			10,
-			"xds-services",
+			"grpc-listeners-changes",
 			logger,
 		)
 
 		endpointSliceChangedQueue = controllersupport.NewQueuedEventHandler(
 			&endpointSliceChangedHandler{
-				servicesLister: cfg.GTCInformers.Api().V1alpha1().XDSServices().Lister(),
-				watches:        watches,
-				logger:         logger,
+				listenersLister: cfg.GTCInformers.Api().V1alpha1().GRPCListeners().Lister(),
+				watches:         watches,
+				logger:          logger,
 			},
 			10,
-			"endpointslices",
+			"endpointslices-changes",
 			logger,
 		)
 	)
@@ -99,9 +99,9 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 	_, err := cfg.GTCInformers.
 		Api().
 		V1alpha1().
-		XDSServices().
+		GRPCListeners().
 		Informer().
-		AddEventHandler(xdsServiceChangedQueue)
+		AddEventHandler(grpcListenerChangedQueue)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func NewXDSServer(ctx context.Context, cfg XDSServerConfig, logger *zap.Logger) 
 	}
 
 	return &XDSServer{
-		xdsServiceChangedQueue:    xdsServiceChangedQueue,
+		grpcListenerChangedQueue:  grpcListenerChangedQueue,
 		endpointSliceChangedQueue: endpointSliceChangedQueue,
 		bindAddr:                  cfg.BindAddr,
 		server:                    grpcServer,
@@ -129,7 +129,7 @@ func (s *XDSServer) Run(ctx context.Context) error {
 	errGroup, groupCtx := errgroup.WithContext(ctx)
 
 	errGroup.Go(func() error {
-		s.xdsServiceChangedQueue.Run(groupCtx)
+		s.grpcListenerChangedQueue.Run(groupCtx)
 		return nil
 	})
 
