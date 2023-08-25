@@ -2,46 +2,64 @@ package gtc
 
 import (
 	"fmt"
+	"path"
+	"strconv"
 	"strings"
 )
 
-func resourcePrefix(namespace, name string) string {
-	return "gtc" + "." + namespace + "." + name + "."
-}
-
 func routeConfigName(namespace, name string) string {
-	return resourcePrefix(namespace, name) + "routeconfig"
+	return path.Join(namespace, name, "routeconfig")
 }
 
 func vHostName(namespace, name string) string {
-	return resourcePrefix(namespace, name) + "vhost"
+	return path.Join(namespace, name, "vhost")
 }
 
-func clusterName(namespace, name, clusterName string) string {
-	return resourcePrefix(namespace, name) + clusterName
+func backendName(namespace, name string, routeID, backendID int) string {
+	return path.Join(
+		namespace,
+		name,
+		"route",
+		strconv.Itoa(routeID),
+		"backend",
+		strconv.Itoa(backendID),
+	)
 }
 
-type xdsResourceName struct {
+// namespace/name/route/<route_id>/backend/<backend_id>
+type parsedBackendName struct {
 	Namespace    string
 	ListenerName string
-	ResourceName string
+	RouteID      int
+	BackendID    int
 }
 
-func parseXDSResourceName(resourceName string) (xdsResourceName, error) {
-	sp := strings.Split(resourceName, ".")
+func (p *parsedBackendName) String() string {
+	return backendName(p.Namespace, p.ListenerName, p.RouteID, p.BackendID)
+}
 
-	if len(sp) != 4 {
-		return xdsResourceName{}, malformedResourceNameErr(resourceName)
+func parseBackendName(resourceName string) (parsedBackendName, error) {
+	sp := strings.Split(resourceName, "/")
+
+	if len(sp) != 6 {
+		return parsedBackendName{}, malformedResourceNameErr(resourceName)
 	}
 
-	if sp[0] != "gtc" {
-		return xdsResourceName{}, malformedResourceNameErr(resourceName)
+	routeID, err := strconv.Atoi(sp[3])
+	if err != nil {
+		return parsedBackendName{}, malformedResourceNameErr(resourceName)
 	}
 
-	return xdsResourceName{
-		Namespace:    sp[1],
-		ListenerName: sp[2],
-		ResourceName: sp[3],
+	backendID, err := strconv.Atoi(sp[5])
+	if err != nil {
+		return parsedBackendName{}, malformedResourceNameErr(resourceName)
+	}
+
+	return parsedBackendName{
+		Namespace:    sp[0],
+		ListenerName: sp[1],
+		RouteID:      routeID,
+		BackendID:    backendID,
 	}, nil
 }
 

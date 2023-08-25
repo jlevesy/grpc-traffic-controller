@@ -1,20 +1,6 @@
 # gRFC A27 examples
 # https://github.com/grpc/proposal/blob/master/A27-xds-global-load-balancing.md
 ---
-# Basic example using defaultCluster
-# Listener address: xds:///echo-server/default-cluster
-apiVersion: api.gtc.dev/v1alpha1
-kind: GRPCListener
-metadata:
-  name: default-cluster
-  namespace: echo-server
-spec:
-  defaultCluster:
-    service:
-      name: echo-server-v1
-      port:
-        name: grpc
----
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic
 apiVersion: api.gtc.dev/v1alpha1
@@ -24,14 +10,11 @@ metadata:
   namespace: echo-server
 spec:
   routes:
-    - clusters:
-        - name: default
-  clusters:
-    - name: default
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - backends:
+        - service:
+             name: echo-server-v1
+             port:
+                name: grpc
 ---
 # Basic example: one listeners maps to a route and a single K8s service
 # Listener address: xds:///echo-server/basic-v2
@@ -42,14 +25,11 @@ metadata:
   namespace: echo-server
 spec:
   routes:
-    - clusters:
-        - name: default
-  clusters:
-    - name: default
-      service:
-        name: echo-server-v2
-        port:
-          name: grpc
+    - backends:
+        - service:
+             name: echo-server-v2
+             port:
+                name: grpc
 ---
 # Locality based Weighted Round Robin: This example makes all gRPC clients using this listener send 20% of their traffic to
 # the v2 instance of the echo-server, and 80% to the v1 instance.
@@ -61,21 +41,18 @@ metadata:
   namespace: echo-server
 spec:
   routes:
-    - clusters:
-        - name: default
-  clusters:
-    - name: default
-      localities:
-        - weight: 80
-          service:
-            name: echo-server-v1
-            port:
-              name: grpc
-        - weight: 20
-          service:
-            name: echo-server-v2
-            port:
-              name: grpc
+    - backends:
+        - localities:
+            - weight: 80
+              service:
+                name: echo-server-v1
+                port:
+                  name: grpc
+            - weight: 20
+              service:
+                name: echo-server-v2
+                port:
+                  name: grpc
 ---
 # Locality fallback: This example makes all gRPC clients using this listener send 100% the the `echo-server-v2` service
 # but fall back to the v1 instance if the v2 service goes down.
@@ -87,106 +64,91 @@ metadata:
   namespace: echo-server
 spec:
   routes:
-    - clusters:
-        - name: default
-  clusters:
-    - name: default
-      localities:
-        - priority: 1
-          service:
-            name: echo-server-v1
-            port:
-              name: grpc
-        - priority: 0
-          service:
-            name: echo-server-v2
-            port:
-              name: grpc
+    - backends:
+        - localities:
+            - priority: 1
+              service:
+                name: echo-server-v1
+                port:
+                  name: grpc
+            - priority: 0
+              service:
+                name: echo-server-v2
+                port:
+                  name: grpc
 ---
 # gRFC A28 examples
 # https://github.com/grpc/proposal/blob/master/A28-xds-traffic-splitting-and-routing.md
 ---
-# Path based routing: Route calls to premium service RPC to the echo-server v2
+# Method based routing: Only calls to the `echo.Echo/EchoPremium` method are routed to the v2 instance.
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
-  name: path-matcher
+  name: method-matcher
   namespace: echo-server
 spec:
   routes:
-    - path:
-        path: /echo.Echo/EchoPremium
-      clusters:
-        - name: v2
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v2
-      service:
-        name: echo-server-v2
-        port:
-          name: grpc
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - matcher:
+        method:
+          namespace: echo
+          service: Echo
+          method: EchoPremium
+      backends:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
-# Path Prefix based routing: Route calls to premium service RPC to the echo-server v2
+# Service based routing: Only calls to the `echo.Echo` service are routed to the v2 instance.
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
-  name: prefix-matcher
+  name: service-matcher
   namespace: echo-server
 spec:
   routes:
-    - path:
-        prefix: /echo.Echo/EchoP
-      clusters:
-        - name: v2
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v2
-      service:
-        name: echo-server-v2
-        port:
-          name: grpc
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - matcher:
+        service:
+          namespace: echo
+          service: Echo
+      backends:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
-# Regex Prefix based routing: Route calls to premium service RPC to the echo-server v2
+# gRPC namespace based routing: Only calls to the services within the grpc `echo` namespace are routed to the v2 instance.
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
-  name: regex-matcher
+  name: namespace-matcher
   namespace: echo-server
 spec:
   routes:
-    - path:
-        regex:
-          # Regex must match the entierity of the path.
-          regex: .*/EchoPremium
-      clusters:
-        - name: v2
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v2
-      service:
-        name: echo-server-v2
-        port:
-          name: grpc
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - matcher:
+        namespace: echo
+      backends:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
-# Header based routing: Route calls v2 if header "x-version" has the value "v2"
+# Metadata based routing: Route calls v2 if the metadata "x-version" has the value "v2"
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
@@ -194,69 +156,57 @@ metadata:
   namespace: echo-server
 spec:
   routes:
-    - headers:
-        - name: "x-version"
-          exact: "v2"
-      clusters:
-        - name: v2
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v2
-      service:
-        name: echo-server-v2
-        port:
-          name: grpc
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - matcher:
+        metadata:
+          - name: x-version
+            exact: v2
+      backends:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
 # Fractional traffic splitting: 20% of calls go v2 the other 80% hit v1
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
-  name: fractional-route-matcher
+  name: fraction-matcher
   namespace: echo-server
 spec:
   routes:
-    - fraction:
-        numerator: 20
-      clusters:
-        - name: v2
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v2
-      service:
-        name: echo-server-v2
-        port:
-          name: grpc
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - matcher:
+        fraction:
+          numerator: 20
+      backends:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
-# Circuit breaker.
+# Max Concurrent Requests on a backend. No more than 20 concurent calls to the same backend.
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
-  name: circuit-breaker
+  name: max-requests
   namespace: echo-server
 spec:
   routes:
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v1
-      maxRequests: 20
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
-
+    - backends:
+        - maxRequests: 20
+          service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
 # Delay Injection filter fixed
 apiVersion: api.gtc.dev/v1alpha1
@@ -265,45 +215,41 @@ metadata:
   name: delay-fault-injection
   namespace: echo-server
 spec:
-  filters:
+  interceptors:
     - fault:
         delay:
           fixed: 2s
           percentage:
             numerator: 50
   routes:
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
 ---
-# Fault Injection filter metadata
+# Fault Injection filter based on call metadata
+# 100% of the calls with the meadata "x-envoy-fault-abort-grpc-request": "3" are going to be aborted with status 3
+# 100% of the calls with the metadata "x-envoy-fault-delay-request": "5000" are going to be delayed by 5000ms
 apiVersion: api.gtc.dev/v1alpha1
 kind: GRPCListener
 metadata:
-  name: fault-injection-header
+  name: fault-injection-metadata
   namespace: echo-server
 spec:
-  filters:
+  interceptors:
     - fault:
         abort:
-          header: {}
+          metadata: {}
           percentage:
             numerator: 100
         delay:
-          header: {}
+          metadata: {}
           percentage:
             numerator: 100
   routes:
-    - clusters:
-        - name: v1
-  clusters:
-    - name: v1
-      service:
-        name: echo-server-v1
-        port:
-          name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc

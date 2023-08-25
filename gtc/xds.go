@@ -1,8 +1,6 @@
 package gtc
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -48,19 +46,6 @@ func makeFractionalPercent(p *gtcv1alpha1.Fraction) (*typev3.FractionalPercent, 
 		Numerator:   p.Numerator,
 		Denominator: typev3.FractionalPercent_DenominatorType(denominator),
 	}, nil
-}
-
-func computeVersionInfo(vs []string) (string, error) {
-	hasher := sha256.New()
-
-	for _, v := range vs {
-		_, err := hasher.Write([]byte(v))
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return base64.StdEncoding.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func encodeResource(typ string, r types.Resource) (*anyv1.Any, error) {

@@ -25,9 +25,8 @@ import (
 // FaultAbortApplyConfiguration represents an declarative configuration of the FaultAbort type for use
 // with apply.
 type FaultAbortApplyConfiguration struct {
-	HTTPStatus *uint32                     `json:"http,omitempty"`
-	GRPCStatus *uint32                     `json:"grpc,omitempty"`
-	Header     *v1alpha1.HeaderFault       `json:"header,omitempty"`
+	Status     *uint32                     `json:"grpc,omitempty"`
+	Metadata   *v1alpha1.MetadataFault     `json:"metadata,omitempty"`
 	Percentage *FractionApplyConfiguration `json:"percentage,omitempty"`
 }
 
@@ -37,27 +36,19 @@ func FaultAbort() *FaultAbortApplyConfiguration {
 	return &FaultAbortApplyConfiguration{}
 }
 
-// WithHTTPStatus sets the HTTPStatus field in the declarative configuration to the given value
+// WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the HTTPStatus field is set to the value of the last call.
-func (b *FaultAbortApplyConfiguration) WithHTTPStatus(value uint32) *FaultAbortApplyConfiguration {
-	b.HTTPStatus = &value
+// If called multiple times, the Status field is set to the value of the last call.
+func (b *FaultAbortApplyConfiguration) WithStatus(value uint32) *FaultAbortApplyConfiguration {
+	b.Status = &value
 	return b
 }
 
-// WithGRPCStatus sets the GRPCStatus field in the declarative configuration to the given value
+// WithMetadata sets the Metadata field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the GRPCStatus field is set to the value of the last call.
-func (b *FaultAbortApplyConfiguration) WithGRPCStatus(value uint32) *FaultAbortApplyConfiguration {
-	b.GRPCStatus = &value
-	return b
-}
-
-// WithHeader sets the Header field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Header field is set to the value of the last call.
-func (b *FaultAbortApplyConfiguration) WithHeader(value v1alpha1.HeaderFault) *FaultAbortApplyConfiguration {
-	b.Header = &value
+// If called multiple times, the Metadata field is set to the value of the last call.
+func (b *FaultAbortApplyConfiguration) WithMetadata(value v1alpha1.MetadataFault) *FaultAbortApplyConfiguration {
+	b.Metadata = &value
 	return b
 }
 

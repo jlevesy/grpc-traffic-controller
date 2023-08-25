@@ -29,20 +29,14 @@ import (
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
 	// Group=api.gtc.dev, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithKind("Cluster"):
-		return &gtcv1alpha1.ClusterApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("ClusterRef"):
-		return &gtcv1alpha1.ClusterRefApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("DefaultCluster"):
-		return &gtcv1alpha1.DefaultClusterApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Backend"):
+		return &gtcv1alpha1.BackendApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("FaultAbort"):
 		return &gtcv1alpha1.FaultAbortApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("FaultDelay"):
 		return &gtcv1alpha1.FaultDelayApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("FaultFilter"):
-		return &gtcv1alpha1.FaultFilterApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Filter"):
-		return &gtcv1alpha1.FilterApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("FaultInterceptor"):
+		return &gtcv1alpha1.FaultInterceptorApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Fraction"):
 		return &gtcv1alpha1.FractionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("GRPCListener"):
@@ -51,10 +45,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &gtcv1alpha1.GRPCListenerSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HeaderMatcher"):
 		return &gtcv1alpha1.HeaderMatcherApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Interceptor"):
+		return &gtcv1alpha1.InterceptorApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Locality"):
 		return &gtcv1alpha1.LocalityApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("PathMatcher"):
-		return &gtcv1alpha1.PathMatcherApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("MetadataMatcher"):
+		return &gtcv1alpha1.MetadataMatcherApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("MethodMatcher"):
+		return &gtcv1alpha1.MethodMatcherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PortRef"):
 		return &gtcv1alpha1.PortRefApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RangeMatcher"):
@@ -63,6 +61,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &gtcv1alpha1.RegexMatcherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Route"):
 		return &gtcv1alpha1.RouteApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RouteMatcher"):
+		return &gtcv1alpha1.RouteMatcherApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ServiceMatcher"):
+		return &gtcv1alpha1.ServiceMatcherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ServiceRef"):
 		return &gtcv1alpha1.ServiceRefApplyConfiguration{}
 

@@ -8,7 +8,6 @@ import (
 	listenerv3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	resourcesv3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
-	anyv1 "github.com/golang/protobuf/ptypes/any"
 	gtclisters "github.com/jlevesy/grpc-traffic-controller/client/listers/gtc/v1alpha1"
 )
 
@@ -17,14 +16,7 @@ type listenerHandler struct {
 }
 
 func (h *listenerHandler) resolveResource(req resolveRequest) (*resolveResponse, error) {
-	var (
-		err      error
-		versions = make([]string, len(req.resourceNames))
-		response = resolveResponse{
-			typeURL:   resourcesv3.ListenerType,
-			resources: make([]*anyv1.Any, len(req.resourceNames)),
-		}
-	)
+	response := newResolveResponse(resourcesv3.ListenerType, len(req.resourceNames))
 
 	for i, resourceName := range req.resourceNames {
 		resource, version, err := h.makeListener(resourceName)
@@ -37,15 +29,12 @@ func (h *listenerHandler) resolveResource(req resolveRequest) (*resolveResponse,
 			return nil, err
 		}
 
-		versions[i] = version
+		if err := response.useResourceVersion(version); err != nil {
+			return nil, err
+		}
 	}
 
-	response.versionInfo, err = computeVersionInfo(versions)
-	if err != nil {
-		return nil, err
-	}
-
-	return &response, nil
+	return response, nil
 }
 
 func (h *listenerHandler) makeListener(resourceName string) (*listenerv3.Listener, string, error) {
@@ -59,7 +48,7 @@ func (h *listenerHandler) makeListener(resourceName string) (*listenerv3.Listene
 		return nil, "", err
 	}
 
-	filters, err := makeFilters(listener.Spec.Filters)
+	filters, err := makeFilters(listener.Spec.Interceptors)
 	if err != nil {
 		return nil, "", err
 	}

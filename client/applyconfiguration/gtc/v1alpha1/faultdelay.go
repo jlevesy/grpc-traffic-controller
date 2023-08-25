@@ -27,7 +27,7 @@ import (
 // with apply.
 type FaultDelayApplyConfiguration struct {
 	Fixed      *v1.Duration                `json:"fixed,omitempty"`
-	Header     *v1alpha1.HeaderFault       `json:"header,omitempty"`
+	Metadata   *v1alpha1.MetadataFault     `json:"metadata,omitempty"`
 	Percentage *FractionApplyConfiguration `json:"percentage,omitempty"`
 }
 
@@ -45,11 +45,11 @@ func (b *FaultDelayApplyConfiguration) WithFixed(value v1.Duration) *FaultDelayA
 	return b
 }
 
-// WithHeader sets the Header field in the declarative configuration to the given value
+// WithMetadata sets the Metadata field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Header field is set to the value of the last call.
-func (b *FaultDelayApplyConfiguration) WithHeader(value v1alpha1.HeaderFault) *FaultDelayApplyConfiguration {
-	b.Header = &value
+// If called multiple times, the Metadata field is set to the value of the last call.
+func (b *FaultDelayApplyConfiguration) WithMetadata(value v1alpha1.MetadataFault) *FaultDelayApplyConfiguration {
+	b.Metadata = &value
 	return b
 }
 

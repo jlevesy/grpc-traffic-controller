@@ -17,30 +17,28 @@ func DurationPtr(d time.Duration) *metav1.Duration {
 	}
 }
 
-type ClusterOption func(c *gtcv1alpha1.Cluster)
+type BackendOption func(c *gtcv1alpha1.Backend)
 
-func WithMaxRequests(req uint32) ClusterOption {
-	return func(c *gtcv1alpha1.Cluster) {
+func WithMaxRequests(req uint32) BackendOption {
+	return func(c *gtcv1alpha1.Backend) {
 		c.MaxRequests = &req
 	}
 }
 
-func WithServiceRef(s gtcv1alpha1.ServiceRef) ClusterOption {
-	return func(c *gtcv1alpha1.Cluster) {
+func WithServiceRef(s gtcv1alpha1.ServiceRef) BackendOption {
+	return func(c *gtcv1alpha1.Backend) {
 		c.Service = &s
 	}
 }
 
-func WithLocalities(l ...gtcv1alpha1.Locality) ClusterOption {
-	return func(c *gtcv1alpha1.Cluster) {
+func WithLocalities(l ...gtcv1alpha1.Locality) BackendOption {
+	return func(c *gtcv1alpha1.Backend) {
 		c.Localities = l
 	}
 }
 
-func BuildCluster(name string, opts ...ClusterOption) gtcv1alpha1.Cluster {
-	c := gtcv1alpha1.Cluster{
-		Name: name,
-	}
+func BuildBackend(opts ...BackendOption) gtcv1alpha1.Backend {
+	c := gtcv1alpha1.Backend{Weight: 1}
 
 	for _, opt := range opts {
 		opt(&c)
@@ -81,62 +79,93 @@ func BuildLocality(opts ...LocalityOption) gtcv1alpha1.Locality {
 	return l
 }
 
-type DefaultClusterOption func(c *gtcv1alpha1.DefaultCluster)
-
-func BuildDefaultCluster(opts ...DefaultClusterOption) gtcv1alpha1.DefaultCluster {
-	var c gtcv1alpha1.DefaultCluster
-
-	for _, o := range opts {
-		o(&c)
-	}
-
-	return c
-}
-
-func WithDefaultServiceRef(s gtcv1alpha1.ServiceRef) DefaultClusterOption {
-	return func(c *gtcv1alpha1.DefaultCluster) {
-		c.Service = &s
-	}
-}
-
-func HeaderInvertMatch(in gtcv1alpha1.HeaderMatcher) gtcv1alpha1.HeaderMatcher {
+func MetadataInvertMatch(in gtcv1alpha1.MetadataMatcher) gtcv1alpha1.MetadataMatcher {
 	in.Invert = true
 	return in
 }
 
-func HeaderExactMatch(name, value string) gtcv1alpha1.HeaderMatcher {
-	return gtcv1alpha1.HeaderMatcher{
+func MetadataExactMatch(name, value string) gtcv1alpha1.MetadataMatcher {
+	return gtcv1alpha1.MetadataMatcher{
 		Name:  name,
 		Exact: &value,
 	}
 }
 
-func HeaderPresentMatch(name string, present bool) gtcv1alpha1.HeaderMatcher {
-	return gtcv1alpha1.HeaderMatcher{
+func MetadataPresentMatch(name string, present bool) gtcv1alpha1.MetadataMatcher {
+	return gtcv1alpha1.MetadataMatcher{
 		Name:    name,
 		Present: &present,
 	}
 }
 
-func HeaderPrefixMatch(name, prefix string) gtcv1alpha1.HeaderMatcher {
-	return gtcv1alpha1.HeaderMatcher{
+func MetadataPrefixMatch(name, prefix string) gtcv1alpha1.MetadataMatcher {
+	return gtcv1alpha1.MetadataMatcher{
 		Name:   name,
 		Prefix: &prefix,
 	}
 }
 
-func HeaderSuffixMatch(name, suffix string) gtcv1alpha1.HeaderMatcher {
-	return gtcv1alpha1.HeaderMatcher{
+func MetadataSuffixMatch(name, suffix string) gtcv1alpha1.MetadataMatcher {
+	return gtcv1alpha1.MetadataMatcher{
 		Name:   name,
 		Suffix: &suffix,
 	}
 }
 
+type RouteMatcherOption func(m *gtcv1alpha1.RouteMatcher)
+
+func WithMethodMatcher(namespace, service, method string) RouteMatcherOption {
+	return func(m *gtcv1alpha1.RouteMatcher) {
+		m.Method = &gtcv1alpha1.MethodMatcher{
+			Namespace: namespace,
+			Service:   service,
+			Method:    method,
+		}
+	}
+}
+
+func WithFractionMatcher(fr gtcv1alpha1.Fraction) RouteMatcherOption {
+	return func(r *gtcv1alpha1.RouteMatcher) {
+		r.Fraction = &fr
+	}
+}
+
+func WithServiceMatcher(namespace, service string) RouteMatcherOption {
+	return func(m *gtcv1alpha1.RouteMatcher) {
+		m.Service = &gtcv1alpha1.ServiceMatcher{
+			Namespace: namespace,
+			Service:   service,
+		}
+	}
+}
+
+func WithNamespaceMatcher(namespace string) RouteMatcherOption {
+	return func(m *gtcv1alpha1.RouteMatcher) {
+		m.Namespace = &namespace
+	}
+}
+
+func WithMetadataMatchers(mms ...gtcv1alpha1.MetadataMatcher) RouteMatcherOption {
+	return func(m *gtcv1alpha1.RouteMatcher) {
+		m.Metadata = mms
+	}
+}
+
+func BuildRouteMatcher(opts ...RouteMatcherOption) gtcv1alpha1.RouteMatcher {
+	var m gtcv1alpha1.RouteMatcher
+
+	for _, o := range opts {
+		o(&m)
+	}
+
+	return m
+}
+
 type RouteOption func(r *gtcv1alpha1.Route)
 
-func WithHeaderMatchers(matchers ...gtcv1alpha1.HeaderMatcher) RouteOption {
+func WithRouteMatcher(m gtcv1alpha1.RouteMatcher) RouteOption {
 	return func(r *gtcv1alpha1.Route) {
-		r.Headers = matchers
+		r.Matcher = &m
 	}
 }
 
@@ -146,35 +175,23 @@ func WithRouteMaxStreamDuration(d time.Duration) RouteOption {
 	}
 }
 
-func WithRuntimeFraction(fr gtcv1alpha1.Fraction) RouteOption {
+func WithBackends(backends ...gtcv1alpha1.Backend) RouteOption {
 	return func(r *gtcv1alpha1.Route) {
-		r.RuntimeFraction = &fr
+		r.Backends = backends
 	}
 }
 
-func WithClusterRefs(refs ...gtcv1alpha1.ClusterRef) RouteOption {
-	return func(r *gtcv1alpha1.Route) {
-		r.Clusters = refs
-	}
-}
-
-func WithPathMatcher(pm gtcv1alpha1.PathMatcher) RouteOption {
-	return func(r *gtcv1alpha1.Route) {
-		r.Path = pm
-	}
-}
-
-func WithCaseSensitive(v bool) RouteOption {
-	return func(r *gtcv1alpha1.Route) {
-		r.CaseSensitive = v
-	}
-}
+// func WithCaseSensitive(v bool) RouteOption {
+// 	return func(r *gtcv1alpha1.Route) {
+// 		r.CaseSensitive = v
+// 	}
+// }
 
 func BuildRoute(opts ...RouteOption) gtcv1alpha1.Route {
 	r := gtcv1alpha1.Route{
-		Path: gtcv1alpha1.PathMatcher{
-			Prefix: "/",
-		},
+		// Path: gtcv1alpha1.PathMatcher{
+		// 	Prefix: "/",
+		// },
 	}
 
 	for _, opt := range opts {
@@ -184,22 +201,11 @@ func BuildRoute(opts ...RouteOption) gtcv1alpha1.Route {
 	return r
 }
 
-func BuildSingleRoute(clusterName string) gtcv1alpha1.Route {
-	return BuildRoute(
-		WithClusterRefs(
-			gtcv1alpha1.ClusterRef{
-				Name:   clusterName,
-				Weight: 1,
-			},
-		),
-	)
-}
-
 type GRPCListenerOpt func(s *gtcv1alpha1.GRPCListener)
 
-func WithFilters(fs ...gtcv1alpha1.Filter) GRPCListenerOpt {
+func WithInterceptors(fs ...gtcv1alpha1.Interceptor) GRPCListenerOpt {
 	return func(s *gtcv1alpha1.GRPCListener) {
-		s.Spec.Filters = fs
+		s.Spec.Interceptors = fs
 	}
 }
 
@@ -209,21 +215,9 @@ func WithRoutes(rs ...gtcv1alpha1.Route) GRPCListenerOpt {
 	}
 }
 
-func WithClusters(cs ...gtcv1alpha1.Cluster) GRPCListenerOpt {
-	return func(s *gtcv1alpha1.GRPCListener) {
-		s.Spec.Clusters = cs
-	}
-}
-
 func WithMaxStreamDuration(d time.Duration) GRPCListenerOpt {
 	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.MaxStreamDuration = &metav1.Duration{Duration: d}
-	}
-}
-
-func WithDefaultCluster(l gtcv1alpha1.DefaultCluster) GRPCListenerOpt {
-	return func(s *gtcv1alpha1.GRPCListener) {
-		s.Spec.DefaultCluster = &l
 	}
 }
 

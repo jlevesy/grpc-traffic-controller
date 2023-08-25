@@ -18,25 +18,25 @@ limitations under the License.
 
 package v1alpha1
 
-// ClusterApplyConfiguration represents an declarative configuration of the Cluster type for use
+// BackendApplyConfiguration represents an declarative configuration of the Backend type for use
 // with apply.
-type ClusterApplyConfiguration struct {
+type BackendApplyConfiguration struct {
 	Weight      *uint32                       `json:"weight,omitempty"`
 	MaxRequests *uint32                       `json:"maxRequests,omitempty"`
 	Service     *ServiceRefApplyConfiguration `json:"service,omitempty"`
 	Localities  []LocalityApplyConfiguration  `json:"localities,omitempty"`
 }
 
-// ClusterApplyConfiguration constructs an declarative configuration of the Cluster type for use with
+// BackendApplyConfiguration constructs an declarative configuration of the Backend type for use with
 // apply.
-func Cluster() *ClusterApplyConfiguration {
-	return &ClusterApplyConfiguration{}
+func Backend() *BackendApplyConfiguration {
+	return &BackendApplyConfiguration{}
 }
 
 // WithWeight sets the Weight field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Weight field is set to the value of the last call.
-func (b *ClusterApplyConfiguration) WithWeight(value uint32) *ClusterApplyConfiguration {
+func (b *BackendApplyConfiguration) WithWeight(value uint32) *BackendApplyConfiguration {
 	b.Weight = &value
 	return b
 }
@@ -44,7 +44,7 @@ func (b *ClusterApplyConfiguration) WithWeight(value uint32) *ClusterApplyConfig
 // WithMaxRequests sets the MaxRequests field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MaxRequests field is set to the value of the last call.
-func (b *ClusterApplyConfiguration) WithMaxRequests(value uint32) *ClusterApplyConfiguration {
+func (b *BackendApplyConfiguration) WithMaxRequests(value uint32) *BackendApplyConfiguration {
 	b.MaxRequests = &value
 	return b
 }
@@ -52,7 +52,7 @@ func (b *ClusterApplyConfiguration) WithMaxRequests(value uint32) *ClusterApplyC
 // WithService sets the Service field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Service field is set to the value of the last call.
-func (b *ClusterApplyConfiguration) WithService(value *ServiceRefApplyConfiguration) *ClusterApplyConfiguration {
+func (b *BackendApplyConfiguration) WithService(value *ServiceRefApplyConfiguration) *BackendApplyConfiguration {
 	b.Service = value
 	return b
 }
@@ -60,7 +60,7 @@ func (b *ClusterApplyConfiguration) WithService(value *ServiceRefApplyConfigurat
 // WithLocalities adds the given value to the Localities field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Localities field.
-func (b *ClusterApplyConfiguration) WithLocalities(values ...*LocalityApplyConfiguration) *ClusterApplyConfiguration {
+func (b *BackendApplyConfiguration) WithLocalities(values ...*LocalityApplyConfiguration) *BackendApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithLocalities")

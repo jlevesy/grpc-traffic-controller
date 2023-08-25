@@ -51,22 +51,35 @@ func (h *grpcListenerChangedHandler) handle(ctx context.Context, obj any) error 
 		},
 	)
 
-	for _, cl := range lis.Spec.Clusters {
-		h.watches.notifyChanged(
-			ctx,
-			resourceRef{
-				typeURL:      resourcesv3.ClusterType,
-				resourceName: clusterName(lis.GetNamespace(), lis.GetName(), cl.Name),
-			},
-		)
+	for routeID, route := range lis.Spec.Routes {
+		for backendID := range route.Backends {
+			h.watches.notifyChanged(
+				ctx,
+				resourceRef{
+					typeURL: resourcesv3.ClusterType,
+					resourceName: backendName(
+						lis.GetNamespace(),
+						lis.GetName(),
+						routeID,
+						backendID,
+					),
+				},
+			)
 
-		h.watches.notifyChanged(
-			ctx,
-			resourceRef{
-				typeURL:      resourcesv3.EndpointType,
-				resourceName: clusterName(lis.GetNamespace(), lis.GetName(), cl.Name),
-			},
-		)
+			h.watches.notifyChanged(
+				ctx,
+				resourceRef{
+					typeURL: resourcesv3.EndpointType,
+					resourceName: backendName(
+						lis.GetNamespace(),
+						lis.GetName(),
+						routeID,
+						backendID,
+					),
+				},
+			)
+		}
+
 	}
 
 	return nil
@@ -108,27 +121,30 @@ func (h *endpointSliceChangedHandler) handle(ctx context.Context, obj any) error
 	// O(n) accross all services isn't good. Yet that's the price of maintaining cross namespace localities.
 	// Dropping this feature would allow us to narrow down the list of services to lookup by namespace.
 	for _, lis := range listeners {
-		for _, cl := range lis.Spec.Clusters {
-			if matchesCluster(objMeta, lis, cl) {
-				h.logger.Debug(
-					"Endpoint changed",
-					zap.String("grpc_listener_namespace", lis.GetNamespace()),
-					zap.String("grpc_listener_name", lis.GetName()),
-					zap.String("endpoint_name", objMeta.GetName()),
-					zap.String("endpoint_namespace", objMeta.GetNamespace()),
-				)
+		for routeID, route := range lis.Spec.Routes {
+			for backendID, backend := range route.Backends {
+				if matchesBackend(objMeta, lis, backend) {
+					h.logger.Debug(
+						"Endpoint changed",
+						zap.String("grpc_listener_namespace", lis.GetNamespace()),
+						zap.String("grpc_listener_name", lis.GetName()),
+						zap.String("endpoint_name", objMeta.GetName()),
+						zap.String("endpoint_namespace", objMeta.GetNamespace()),
+					)
 
-				h.watches.notifyChanged(
-					ctx,
-					resourceRef{
-						typeURL: resourcesv3.EndpointType,
-						resourceName: clusterName(
-							lis.GetNamespace(),
-							lis.GetName(),
-							cl.Name,
-						),
-					},
-				)
+					h.watches.notifyChanged(
+						ctx,
+						resourceRef{
+							typeURL: resourcesv3.EndpointType,
+							resourceName: backendName(
+								lis.GetNamespace(),
+								lis.GetName(),
+								routeID,
+								backendID,
+							),
+						},
+					)
+				}
 			}
 		}
 	}
@@ -136,12 +152,12 @@ func (h *endpointSliceChangedHandler) handle(ctx context.Context, obj any) error
 	return nil
 }
 
-func matchesCluster(epSlice metav1.Object, listener *gtcv1alpha1.GRPCListener, cluster gtcv1alpha1.Cluster) bool {
+func matchesBackend(epSlice metav1.Object, listener *gtcv1alpha1.GRPCListener, backend gtcv1alpha1.Backend) bool {
 	switch {
-	case cluster.Service != nil:
-		return matchesService(epSlice, listener, cluster.Service)
-	case len(cluster.Localities) > 0:
-		for _, loc := range cluster.Localities {
+	case backend.Service != nil:
+		return matchesService(epSlice, listener, backend.Service)
+	case len(backend.Localities) > 0:
+		for _, loc := range backend.Localities {
 			if matchesService(epSlice, listener, loc.Service) {
 				return true
 			}

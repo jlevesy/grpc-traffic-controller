@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func makeFilters(filters []gtcv1alpha1.Filter) ([]*hcm.HttpFilter, error) {
+func makeFilters(interceptors []gtcv1alpha1.Interceptor) ([]*hcm.HttpFilter, error) {
 	routerFilter := &hcm.HttpFilter{
 		Name: wellknown.Router,
 		ConfigType: &hcm.HttpFilter_TypedConfig{
@@ -21,33 +21,33 @@ func makeFilters(filters []gtcv1alpha1.Filter) ([]*hcm.HttpFilter, error) {
 		},
 	}
 
-	if len(filters) == 0 {
+	if len(interceptors) == 0 {
 		return []*hcm.HttpFilter{
 			routerFilter,
 		}, nil
 	}
 
-	hcmFilters := make([]*hcm.HttpFilter, len(filters)+1)
+	hcmFilters := make([]*hcm.HttpFilter, len(interceptors)+1)
 
-	for i, filterSpec := range filters {
+	for i, interceptorSpec := range interceptors {
 		var err error
 
-		hcmFilters[i], err = makeFilter(filterSpec)
+		hcmFilters[i], err = makeFilter(interceptorSpec)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Always set the router last.
-	hcmFilters[len(filters)] = routerFilter
+	hcmFilters[len(interceptors)] = routerFilter
 
 	return hcmFilters, nil
 }
 
-func makeFilter(filter gtcv1alpha1.Filter) (*hcm.HttpFilter, error) {
+func makeFilter(interceptor gtcv1alpha1.Interceptor) (*hcm.HttpFilter, error) {
 	switch {
-	case filter.Fault != nil:
-		faultFilter, err := makeFaultFilter(filter.Fault)
+	case interceptor.Fault != nil:
+		faultFilter, err := makeFaultFilter(interceptor.Fault)
 		if err != nil {
 			return nil, err
 		}
@@ -63,27 +63,27 @@ func makeFilter(filter gtcv1alpha1.Filter) (*hcm.HttpFilter, error) {
 	}
 }
 
-func makeFaultFilter(f *gtcv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
+func makeFaultFilter(fault *gtcv1alpha1.FaultInterceptor) (*faultv3.HTTPFault, error) {
 	var ff faultv3.HTTPFault
 
-	if f.Delay != nil {
+	if fault.Delay != nil {
 		ff.Delay = &faultv31.FaultDelay{}
 
 		switch {
-		case f.Delay.Fixed != nil:
+		case fault.Delay.Fixed != nil:
 			ff.Delay.FaultDelaySecifier = &faultv31.FaultDelay_FixedDelay{
-				FixedDelay: durationpb.New(f.Delay.Fixed.Duration),
+				FixedDelay: durationpb.New(fault.Delay.Fixed.Duration),
 			}
-		case f.Delay.Header != nil:
+		case fault.Delay.Metadata != nil:
 			ff.Delay.FaultDelaySecifier = &faultv31.FaultDelay_HeaderDelay_{}
 		default:
 			return nil, errors.New("malformed delay fault filter")
 		}
 
-		if f.Delay.Percentage != nil {
+		if fault.Delay.Percentage != nil {
 			var err error
 
-			ff.Delay.Percentage, err = makeFractionalPercent(f.Delay.Percentage)
+			ff.Delay.Percentage, err = makeFractionalPercent(fault.Delay.Percentage)
 
 			if err != nil {
 				return nil, err
@@ -91,28 +91,24 @@ func makeFaultFilter(f *gtcv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
 		}
 	}
 
-	if f.Abort != nil {
+	if fault.Abort != nil {
 		ff.Abort = &faultv3.FaultAbort{}
 
 		switch {
-		case f.Abort.HTTPStatus != nil:
-			ff.Abort.ErrorType = &faultv3.FaultAbort_HttpStatus{
-				HttpStatus: *f.Abort.HTTPStatus,
-			}
-		case f.Abort.GRPCStatus != nil:
+		case fault.Abort.Status != nil:
 			ff.Abort.ErrorType = &faultv3.FaultAbort_GrpcStatus{
-				GrpcStatus: *f.Abort.GRPCStatus,
+				GrpcStatus: *fault.Abort.Status,
 			}
-		case f.Abort.Header != nil:
+		case fault.Abort.Metadata != nil:
 			ff.Abort.ErrorType = &faultv3.FaultAbort_HeaderAbort_{}
 		default:
 			return nil, errors.New("malformed abort fault filter")
 		}
 
-		if f.Abort.Percentage != nil {
+		if fault.Abort.Percentage != nil {
 			var err error
 
-			ff.Abort.Percentage, err = makeFractionalPercent(f.Abort.Percentage)
+			ff.Abort.Percentage, err = makeFractionalPercent(fault.Abort.Percentage)
 
 			if err != nil {
 				return nil, err
@@ -120,8 +116,8 @@ func makeFaultFilter(f *gtcv1alpha1.FaultFilter) (*faultv3.HTTPFault, error) {
 		}
 	}
 
-	if f.MaxActiveFaults != nil {
-		ff.MaxActiveFaults = wrapperspb.UInt32(*f.MaxActiveFaults)
+	if fault.MaxActiveFaults != nil {
+		ff.MaxActiveFaults = wrapperspb.UInt32(*fault.MaxActiveFaults)
 	}
 
 	return &ff, nil
