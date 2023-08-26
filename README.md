@@ -6,14 +6,15 @@ It comes bundled with a lot of advanced features like:
 
 - Traffic Splitting and Routing
 - Locality Fallback
-- Circuit breaking (soon)
-- Retries
+- Circuit breaking
+- Retries (soon)
 - Fault injection
 
 Some ideas I wish to integrate:
 
+- Prometheus Metrics
 - Easier setup of the xDS client
-- First class integration of SPIFFE and SPIRE
+- First class integration of SPIFFE and SPIRE, for both TLS and RBAC.
 
 ## Usage Examples
 
