@@ -37,6 +37,12 @@ func WithLocalities(l ...gtcv1alpha1.Locality) BackendOption {
 	}
 }
 
+func WithBackendInterceptorOverrides(is ...gtcv1alpha1.Interceptor) BackendOption {
+	return func(c *gtcv1alpha1.Backend) {
+		c.Interceptors = is
+	}
+}
+
 func BuildBackend(opts ...BackendOption) gtcv1alpha1.Backend {
 	c := gtcv1alpha1.Backend{Weight: 1}
 
@@ -181,7 +187,7 @@ func WithBackends(backends ...gtcv1alpha1.Backend) RouteOption {
 	}
 }
 
-func WithRouteInterceptorOverides(overrides ...gtcv1alpha1.Interceptor) RouteOption {
+func WithRouteInterceptorOverrides(overrides ...gtcv1alpha1.Interceptor) RouteOption {
 	return func(r *gtcv1alpha1.Route) {
 		r.Interceptors = overrides
 	}

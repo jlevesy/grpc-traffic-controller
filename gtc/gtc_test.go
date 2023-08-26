@@ -1620,7 +1620,7 @@ func TestServer(t *testing.T) {
 										tr.WithMethodMatcher("echo", "Echo", "EchoPremium"),
 									),
 								),
-								tr.WithRouteInterceptorOverides(
+								tr.WithRouteInterceptorOverrides(
 									gtcv1alpha1.Interceptor{
 										Fault: &gtcv1alpha1.FaultInterceptor{
 											Abort: &gtcv1alpha1.FaultAbort{
@@ -1635,6 +1635,92 @@ func TestServer(t *testing.T) {
 								),
 								tr.WithBackends(
 									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV2,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallOnce(
+					tr.BuildCaller(tr.MethodEchoPremium),
+					tr.MustFailWithCode(codes.DataLoss),
+				),
+				tr.CallOnce(
+					tr.BuildCaller(tr.MethodEcho),
+					tr.MustFailWithCode(codes.Aborted),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "backend interceptors overrides abort",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(serviceNameV1, "default", backends[0:1])
+			},
+			buildGRPCListeners: func(backends []tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithInterceptors(
+							gtcv1alpha1.Interceptor{
+								Fault: &gtcv1alpha1.FaultInterceptor{
+									Abort: &gtcv1alpha1.FaultAbort{
+										Status: tr.Ptr(uint32(10)),
+										Percentage: &gtcv1alpha1.Fraction{
+											Numerator:   100,
+											Denominator: "hundred",
+										},
+									},
+								},
+							},
+						),
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteMatcher(
+									tr.BuildRouteMatcher(
+										tr.WithMethodMatcher("echo", "Echo", "EchoPremium"),
+									),
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithBackendInterceptorOverrides(
+											gtcv1alpha1.Interceptor{
+												Fault: &gtcv1alpha1.FaultInterceptor{
+													Abort: &gtcv1alpha1.FaultAbort{
+														Status: tr.Ptr(uint32(15)),
+														Percentage: &gtcv1alpha1.Fraction{
+															Numerator:   100,
+															Denominator: "hundred",
+														},
+													},
+												},
+											},
+										),
 										tr.WithServiceRef(
 											gtcv1alpha1.ServiceRef{
 												Name: serviceNameV2,

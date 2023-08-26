@@ -34,6 +34,13 @@ func (in *Backend) DeepCopyInto(out *Backend) {
 		*out = new(uint32)
 		**out = **in
 	}
+	if in.Interceptors != nil {
+		in, out := &in.Interceptors, &out.Interceptors
+		*out = make([]Interceptor, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Service != nil {
 		in, out := &in.Service, &out.Service
 		*out = new(ServiceRef)

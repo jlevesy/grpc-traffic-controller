@@ -140,6 +140,10 @@ type Backend struct {
 	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
 	MaxRequests *uint32 `json:"maxRequests,omitempty"`
 
+	// Interceptors are a list of interceptor overrides to apply to this backend.
+	// Note that the interceptors defined here must me also defined at the listener level.
+	Interceptors []Interceptor `json:"interceptors,omitempty"`
+
 	// Service is a reference to a k8s service.
 	// +optional
 	Service *ServiceRef `json:"service,omitempty"`

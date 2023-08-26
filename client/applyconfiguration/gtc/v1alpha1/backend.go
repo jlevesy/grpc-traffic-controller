@@ -21,10 +21,11 @@ package v1alpha1
 // BackendApplyConfiguration represents an declarative configuration of the Backend type for use
 // with apply.
 type BackendApplyConfiguration struct {
-	Weight      *uint32                       `json:"weight,omitempty"`
-	MaxRequests *uint32                       `json:"maxRequests,omitempty"`
-	Service     *ServiceRefApplyConfiguration `json:"service,omitempty"`
-	Localities  []LocalityApplyConfiguration  `json:"localities,omitempty"`
+	Weight       *uint32                         `json:"weight,omitempty"`
+	MaxRequests  *uint32                         `json:"maxRequests,omitempty"`
+	Interceptors []InterceptorApplyConfiguration `json:"interceptors,omitempty"`
+	Service      *ServiceRefApplyConfiguration   `json:"service,omitempty"`
+	Localities   []LocalityApplyConfiguration    `json:"localities,omitempty"`
 }
 
 // BackendApplyConfiguration constructs an declarative configuration of the Backend type for use with
@@ -46,6 +47,19 @@ func (b *BackendApplyConfiguration) WithWeight(value uint32) *BackendApplyConfig
 // If called multiple times, the MaxRequests field is set to the value of the last call.
 func (b *BackendApplyConfiguration) WithMaxRequests(value uint32) *BackendApplyConfiguration {
 	b.MaxRequests = &value
+	return b
+}
+
+// WithInterceptors adds the given value to the Interceptors field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Interceptors field.
+func (b *BackendApplyConfiguration) WithInterceptors(values ...*InterceptorApplyConfiguration) *BackendApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithInterceptors")
+		}
+		b.Interceptors = append(b.Interceptors, *values[i])
+	}
 	return b
 }
 
