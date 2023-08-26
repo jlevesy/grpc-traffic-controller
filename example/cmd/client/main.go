@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	_ "google.golang.org/grpc/xds"
 
 	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
@@ -96,7 +97,7 @@ func main() {
 			resp, err = client.Echo(callCtx, &echo.EchoRequest{Payload: flag.Arg(0)})
 		}
 		if err != nil {
-			log.Println("unable to send echo request", err)
+			log.Println("unable to send echo request", err, "Code is:", status.Code(err))
 			return
 		}
 
