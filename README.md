@@ -7,7 +7,7 @@ It comes bundled with a lot of advanced features like:
 - Traffic Splitting and Routing
 - Locality Fallback
 - Circuit breaking
-- Retries (soon)
+- Retries
 - Fault injection
 
 Some ideas I wish to integrate:
@@ -36,7 +36,7 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | [A39](https://github.com/grpc/proposal/blob/master/A39-xds-http-filters.md)  | Supported filters at listener, route and backend level |
 | [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO, Not directly related but it highlight the need of supporting CSDS on gTC's end? |
 | [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO |
-| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | TODO |
+| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | Supported, both on route and listener |
 | [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO |
 
 - I indend to suport xDS enabled gRPC servers, yet it might require a slight API change, or even a new CRD. More thinking is needed here.
