@@ -31,6 +31,50 @@ spec:
              port:
                 name: grpc
 ---
+# Retry policy on the listener
+# Listener address: xds:///echo-server/listener-retry
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: listener-retry
+  namespace: echo-server
+spec:
+  retry:
+    retryOn:
+      - internal
+    numRetries: 3
+    backoff:
+      baseInterval: 1s
+      maxInterval: 20s
+  routes:
+    - backends:
+        - service:
+             name: echo-server-v1
+             port:
+                name: grpc
+---
+# Retry policy on the route
+# Listener address: xds:///echo-server/listener-retry
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: route-retry
+  namespace: echo-server
+spec:
+  routes:
+    - retry:
+        retryOn:
+          - internal
+        numRetries: 3
+        backoff:
+          baseInterval: 1s
+          maxInterval: 20s
+      backends:
+        - service:
+             name: echo-server-v1
+             port:
+                name: grpc
+---
 # Weighted backends: v2 take 20% and v1 takes 80%
 # Listener address: xds:///echo-server/weigthed-backends
 apiVersion: api.gtc.dev/v1alpha1
