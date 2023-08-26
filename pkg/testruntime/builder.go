@@ -193,6 +193,12 @@ func WithRouteInterceptorOverrides(overrides ...gtcv1alpha1.Interceptor) RouteOp
 	}
 }
 
+func WithRouteRetry(retry gtcv1alpha1.RetryPolicy) RouteOption {
+	return func(r *gtcv1alpha1.Route) {
+		r.Retry = &retry
+	}
+}
+
 func BuildRoute(opts ...RouteOption) gtcv1alpha1.Route {
 	r := gtcv1alpha1.Route{}
 
@@ -203,27 +209,33 @@ func BuildRoute(opts ...RouteOption) gtcv1alpha1.Route {
 	return r
 }
 
-type GRPCListenerOpt func(s *gtcv1alpha1.GRPCListener)
+type ListenerOption func(s *gtcv1alpha1.GRPCListener)
 
-func WithInterceptors(fs ...gtcv1alpha1.Interceptor) GRPCListenerOpt {
+func WithInterceptors(fs ...gtcv1alpha1.Interceptor) ListenerOption {
 	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.Interceptors = fs
 	}
 }
 
-func WithRoutes(rs ...gtcv1alpha1.Route) GRPCListenerOpt {
+func WithRoutes(rs ...gtcv1alpha1.Route) ListenerOption {
 	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.Routes = rs
 	}
 }
 
-func WithMaxStreamDuration(d time.Duration) GRPCListenerOpt {
+func WithMaxStreamDuration(d time.Duration) ListenerOption {
 	return func(s *gtcv1alpha1.GRPCListener) {
 		s.Spec.MaxStreamDuration = &metav1.Duration{Duration: d}
 	}
 }
 
-func BuildGRPCListener(name, namespace string, opts ...GRPCListenerOpt) gtcv1alpha1.GRPCListener {
+func WithListenerRetry(r gtcv1alpha1.RetryPolicy) ListenerOption {
+	return func(s *gtcv1alpha1.GRPCListener) {
+		s.Spec.Retry = &r
+	}
+}
+
+func BuildGRPCListener(name, namespace string, opts ...ListenerOption) gtcv1alpha1.GRPCListener {
 	s := gtcv1alpha1.GRPCListener{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

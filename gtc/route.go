@@ -3,12 +3,14 @@ package gtc
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	typev3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -32,9 +34,14 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 			routeID,
 			routeSpec,
 		)
-
 		if err != nil {
 			return nil, err
+		}
+
+		var routeRetryPolicy *route.RetryPolicy
+
+		if routeSpec.Retry != nil {
+			routeRetryPolicy = makeRetryPolicy(routeSpec.Retry)
 		}
 
 		routes[routeID] = &route.Route{
@@ -42,6 +49,7 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 			TypedPerFilterConfig: filterOverrides,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
+					RetryPolicy: routeRetryPolicy,
 					MaxStreamDuration: &route.RouteAction_MaxStreamDuration{
 						MaxStreamDuration:    makeDuration(routeSpec.MaxStreamDuration),
 						GrpcTimeoutHeaderMax: makeDuration(routeSpec.GrpcTimeoutHeaderMax),
@@ -54,14 +62,21 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 		}
 	}
 
+	var listenerRetryPolicy *route.RetryPolicy
+
+	if listener.Spec.Retry != nil {
+		listenerRetryPolicy = makeRetryPolicy(listener.Spec.Retry)
+	}
+
 	return &route.RouteConfiguration{
 		Name:             routeConfigName(listener.Namespace, listener.Name),
 		ValidateClusters: &wrapperspb.BoolValue{Value: true},
 		VirtualHosts: []*route.VirtualHost{
 			{
-				Name:    vHostName(listener.Namespace, listener.Name),
-				Domains: []string{listenerName},
-				Routes:  routes,
+				Name:        vHostName(listener.Namespace, listener.Name),
+				Domains:     []string{listenerName},
+				Routes:      routes,
+				RetryPolicy: listenerRetryPolicy,
 			},
 		},
 	}, nil
@@ -209,4 +224,31 @@ func makeWeightedClusters(namespace, name string, routeID int, routeSpec gtcv1al
 		TotalWeight: wrapperspb.UInt32(totalWeight),
 		Clusters:    weighedClusters,
 	}, nil
+}
+
+func makeRetryPolicy(spec *gtcv1alpha1.RetryPolicy) *route.RetryPolicy {
+	var (
+		numRetries uint32 = 1
+		backoff    *route.RetryPolicy_RetryBackOff
+	)
+
+	if spec.NumRetries != nil {
+		numRetries = *spec.NumRetries
+	}
+
+	if spec.Backoff != nil {
+		backoff = &route.RetryPolicy_RetryBackOff{
+			BaseInterval: durationpb.New(spec.Backoff.BaseInterval.Duration),
+		}
+
+		if spec.Backoff.MaxInterval != nil {
+			backoff.MaxInterval = durationpb.New(spec.Backoff.MaxInterval.Duration)
+		}
+	}
+
+	return &route.RetryPolicy{
+		RetryOn:      strings.Join(spec.RetryOn, ","),
+		NumRetries:   wrapperspb.UInt32(numRetries),
+		RetryBackOff: backoff,
+	}
 }

@@ -2060,6 +2060,128 @@ func TestServer(t *testing.T) {
 				),
 			),
 		},
+		{
+			desc:         "listener retry",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(
+					serviceNameV1,
+					defaultNamespace,
+					backends[0:1],
+				)
+			},
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithListenerRetry(
+							gtcv1alpha1.RetryPolicy{
+								RetryOn: []string{
+									"unavailable",
+									"cancelled",
+								},
+								NumRetries: tr.Ptr(uint32(2)),
+								Backoff: &gtcv1alpha1.RetryBackoff{
+									BaseInterval: metav1.Duration{
+										Duration: 500 * time.Millisecond,
+									},
+									MaxInterval: tr.DurationPtr(time.Second),
+								},
+							},
+						),
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: sequence(codes.Unavailable, codes.Canceled),
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
+		{
+			desc:         "route retry",
+			backendCount: 1,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(
+					serviceNameV1,
+					defaultNamespace,
+					backends[0:1],
+				)
+			},
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteRetry(
+									gtcv1alpha1.RetryPolicy{
+										RetryOn: []string{
+											"unavailable",
+											"cancelled",
+										},
+										NumRetries: tr.Ptr(uint32(2)),
+										Backoff: &gtcv1alpha1.RetryBackoff{
+											BaseInterval: metav1.Duration{
+												Duration: 500 * time.Millisecond,
+											},
+											MaxInterval: tr.DurationPtr(time.Second),
+										},
+									},
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: sequence(codes.Canceled, codes.Unavailable),
+			doAssertPreUpdate: tr.CallOnce(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 1),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
 			backends, err := tr.StartBackends(
@@ -2141,6 +2263,12 @@ func answer(t *testing.T, backends tr.Backends) {
 func hang(d time.Duration) func(t *testing.T, backends tr.Backends) {
 	return func(t *testing.T, backends tr.Backends) {
 		backends.SetBehavior(tr.HangBehavior(d))
+	}
+}
+
+func sequence(cs ...codes.Code) func(t *testing.T, backends tr.Backends) {
+	return func(t *testing.T, backends tr.Backends) {
+		backends.SetBehavior(tr.SequenceBehavior(cs...))
 	}
 }
 

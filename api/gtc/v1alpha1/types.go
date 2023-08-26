@@ -40,10 +40,14 @@ type GRPCListenerSpec struct {
 	// MaxStreamDuration is the total duration to keep alive an HTTP request/response stream.
 	// If the time limit is reached the stream will be reset independent of any other timeouts.
 	// If not specified, this value is not set.
+	// +optional
 	MaxStreamDuration *metav1.Duration `json:"maxStreamDuration,omitempty"`
 	// Interceptors represent the list of interceptors applied globally in this listener.
 	// +optional
 	Interceptors []Interceptor `json:"interceptors,omitempty"`
+	// Retry indicates a retry policy to be applied on every route of this listener.
+	// +optional
+	Retry *RetryPolicy `json:"retry,omitempty"`
 	// Routes lists all the routes defined for an GRPCListener.
 	Routes []Route `json:"routes,omitempty"`
 }
@@ -68,6 +72,10 @@ type Route struct {
 	// *max_stream_duration*, but limit the applied timeout to the maximum value specified here.
 	// If set to 0, the `grpc-timeout` header is used without modification.
 	GrpcTimeoutHeaderMax *metav1.Duration `json:"grpcTimeoutHeaderMax,omitempty"`
+
+	// Retry indicates a retry policy to be applied for this route.
+	// +optional
+	Retry *RetryPolicy `json:"retry,omitempty"`
 
 	// Backends is the list of all backends serving that route.
 	Backends []Backend `json:"backends,omitempty"`
@@ -181,6 +189,29 @@ type ServiceRef struct {
 	// +optional
 	Namespace string  `json:"namespace,omitempty"`
 	Port      PortRef `json:"port,omitempty"`
+}
+
+// RetryPolicy indicates a retry policy.
+type RetryPolicy struct {
+	// Specifies the conditions under which retry takes place.
+	RetryOn []string `json:"retryOn,omitempty"`
+	// Specifies the allowed number of retries. This parameter is optional and defaults to 1.
+	// +optional
+	// +kubebuilder:default:=1
+	NumRetries *uint32 `json:"numRetries,omitempty"`
+	//  Specifies parameters that control exponential retry back off. This parameter is optional, in which case the default base interval is 25 milliseconds
+	// +optional
+	Backoff *RetryBackoff `json:"backoff,omitempty"`
+}
+
+// RetryBackoff indicates a backoff retry policy.
+type RetryBackoff struct {
+	// Specifies the base interval between retries.
+	// This parameter is required and must be greater than zero. Values less than 1 ms are rounded up to 1 ms.
+	BaseInterval metav1.Duration `json:"baseInterval,omitempty"`
+	// Specifies the maximum interval between retries. This parameter is optional, but must be greater than or equal to the base_interval if set. The default is 10 times the base_interval
+	// +optional
+	MaxInterval *metav1.Duration `json:"maxInterval,omitempty"`
 }
 
 // GRPCListenerList contains a list of GRPCListener

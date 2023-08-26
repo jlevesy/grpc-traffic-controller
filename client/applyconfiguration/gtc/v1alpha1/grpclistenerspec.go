@@ -27,6 +27,7 @@ import (
 type GRPCListenerSpecApplyConfiguration struct {
 	MaxStreamDuration *v1.Duration                    `json:"maxStreamDuration,omitempty"`
 	Interceptors      []InterceptorApplyConfiguration `json:"interceptors,omitempty"`
+	Retry             *RetryPolicyApplyConfiguration  `json:"retry,omitempty"`
 	Routes            []RouteApplyConfiguration       `json:"routes,omitempty"`
 }
 
@@ -54,6 +55,14 @@ func (b *GRPCListenerSpecApplyConfiguration) WithInterceptors(values ...*Interce
 		}
 		b.Interceptors = append(b.Interceptors, *values[i])
 	}
+	return b
+}
+
+// WithRetry sets the Retry field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Retry field is set to the value of the last call.
+func (b *GRPCListenerSpecApplyConfiguration) WithRetry(value *RetryPolicyApplyConfiguration) *GRPCListenerSpecApplyConfiguration {
+	b.Retry = value
 	return b
 }
 

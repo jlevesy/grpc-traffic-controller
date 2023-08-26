@@ -167,6 +167,40 @@ spec:
                   stream will be reset independent of any other timeouts. If not specified,
                   this value is not set.
                 type: string
+              retry:
+                description: Retry indicates a retry policy to be applied on every
+                  route of this listener.
+                properties:
+                  backoff:
+                    description: Specifies parameters that control exponential retry
+                      back off. This parameter is optional, in which case the default
+                      base interval is 25 milliseconds
+                    properties:
+                      baseInterval:
+                        description: Specifies the base interval between retries.
+                          This parameter is required and must be greater than zero.
+                          Values less than 1 ms are rounded up to 1 ms.
+                        type: string
+                      maxInterval:
+                        description: Specifies the maximum interval between retries.
+                          This parameter is optional, but must be greater than or
+                          equal to the base_interval if set. The default is 10 times
+                          the base_interval
+                        type: string
+                    type: object
+                  numRetries:
+                    default: 1
+                    description: Specifies the allowed number of retries. This parameter
+                      is optional and defaults to 1.
+                    format: int32
+                    type: integer
+                  retryOn:
+                    description: Specifies the conditions under which retry takes
+                      place.
+                    items:
+                      type: string
+                    type: array
+                type: object
               routes:
                 description: Routes lists all the routes defined for an GRPCListener.
                 items:
@@ -623,6 +657,40 @@ spec:
                         *Fraction `json:"fraction,omitempty"` Specifies the maximum
                         duration allowed for streams on the route.
                       type: string
+                    retry:
+                      description: Retry indicates a retry policy to be applied for
+                        this route.
+                      properties:
+                        backoff:
+                          description: Specifies parameters that control exponential
+                            retry back off. This parameter is optional, in which case
+                            the default base interval is 25 milliseconds
+                          properties:
+                            baseInterval:
+                              description: Specifies the base interval between retries.
+                                This parameter is required and must be greater than
+                                zero. Values less than 1 ms are rounded up to 1 ms.
+                              type: string
+                            maxInterval:
+                              description: Specifies the maximum interval between
+                                retries. This parameter is optional, but must be greater
+                                than or equal to the base_interval if set. The default
+                                is 10 times the base_interval
+                              type: string
+                          type: object
+                        numRetries:
+                          default: 1
+                          description: Specifies the allowed number of retries. This
+                            parameter is optional and defaults to 1.
+                          format: int32
+                          type: integer
+                        retryOn:
+                          description: Specifies the conditions under which retry
+                            takes place.
+                          items:
+                            type: string
+                          type: array
+                      type: object
                   type: object
                 type: array
             type: object
