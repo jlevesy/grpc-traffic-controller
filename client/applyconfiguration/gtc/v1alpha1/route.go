@@ -29,6 +29,7 @@ type RouteApplyConfiguration struct {
 	Interceptors         []InterceptorApplyConfiguration `json:"interceptors,omitempty"`
 	MaxStreamDuration    *v1.Duration                    `json:"maxStreamDuration,omitempty"`
 	GrpcTimeoutHeaderMax *v1.Duration                    `json:"grpcTimeoutHeaderMax,omitempty"`
+	Retry                *RetryPolicyApplyConfiguration  `json:"retry,omitempty"`
 	Backends             []BackendApplyConfiguration     `json:"backends,omitempty"`
 }
 
@@ -72,6 +73,14 @@ func (b *RouteApplyConfiguration) WithMaxStreamDuration(value v1.Duration) *Rout
 // If called multiple times, the GrpcTimeoutHeaderMax field is set to the value of the last call.
 func (b *RouteApplyConfiguration) WithGrpcTimeoutHeaderMax(value v1.Duration) *RouteApplyConfiguration {
 	b.GrpcTimeoutHeaderMax = &value
+	return b
+}
+
+// WithRetry sets the Retry field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Retry field is set to the value of the last call.
+func (b *RouteApplyConfiguration) WithRetry(value *RetryPolicyApplyConfiguration) *RouteApplyConfiguration {
+	b.Retry = value
 	return b
 }
 

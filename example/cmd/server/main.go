@@ -3,13 +3,16 @@ package main
 import (
 	"flag"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 
 	"github.com/jlevesy/grpc-traffic-controller/pkg/echoserver"
 	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -37,7 +40,12 @@ func main() {
 		srv,
 		&echoserver.Server{
 			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
-				log.Println("Received a request", req.Payload)
+				log.Println("Received a request", req.Payload, req.Flackeyness)
+
+				if req.Flackeyness > 0.0 && rand.Float64() < req.Flackeyness {
+					log.Println("failing this call")
+					return nil, status.Error(codes.Internal, "flackey call")
+				}
 
 				return &echo.EchoReply{
 					Payload:  req.Payload,
@@ -46,7 +54,12 @@ func main() {
 				}, nil
 			},
 			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
-				log.Println("Received a request v2", req.Payload)
+				log.Println("Received a premium request", req.Payload)
+
+				if req.Flackeyness > 0.0 && rand.Float64() < req.Flackeyness {
+					log.Println("failing this call")
+					return nil, status.Error(codes.Internal, "flackey call")
+				}
 
 				return &echo.EchoReply{
 					Payload:  req.Payload,

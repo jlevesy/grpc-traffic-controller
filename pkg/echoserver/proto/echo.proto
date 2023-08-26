@@ -10,6 +10,7 @@ service Echo {
 
 message EchoRequest {
   string payload = 1;
+  double flackeyness = 2;
 }
 
 message EchoReply {

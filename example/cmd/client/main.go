@@ -47,14 +47,16 @@ func main() {
 		ctx  = context.Background()
 		meta = make(metadataArgs)
 
-		addr    string
-		period  time.Duration
-		premium bool
+		addr        string
+		period      time.Duration
+		premium     bool
+		flackeyness float64
 	)
 
 	flag.StringVar(&addr, "addr", "localhost:3333", "the address to connect to")
 	flag.DurationVar(&period, "period", 0*time.Second, "period to make calls")
 	flag.BoolVar(&premium, "premium", false, "call premium")
+	flag.Float64Var(&flackeyness, "flackeyness", 0.0, "flackeyness levelz")
 	flag.Var(&meta, "metadata", "add metadata to the call")
 	flag.Parse()
 
@@ -84,7 +86,7 @@ func main() {
 	)
 
 	callPolicy(func() {
-		log.Println("Calling echo server")
+		log.Println("Calling echo server, flackeyness", flackeyness)
 
 		var (
 			resp *echo.EchoReply
@@ -92,9 +94,9 @@ func main() {
 		)
 
 		if premium {
-			resp, err = client.EchoPremium(callCtx, &echo.EchoRequest{Payload: flag.Arg(0)})
+			resp, err = client.EchoPremium(callCtx, &echo.EchoRequest{Payload: flag.Arg(0), Flackeyness: flackeyness})
 		} else {
-			resp, err = client.Echo(callCtx, &echo.EchoRequest{Payload: flag.Arg(0)})
+			resp, err = client.Echo(callCtx, &echo.EchoRequest{Payload: flag.Arg(0), Flackeyness: flackeyness})
 		}
 		if err != nil {
 			log.Println("unable to send echo request", err, "Code is:", status.Code(err))

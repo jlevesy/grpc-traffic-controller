@@ -8,7 +8,9 @@ import (
 	"github.com/jlevesy/grpc-traffic-controller/pkg/echoserver"
 	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type Backends []Backend
@@ -60,6 +62,35 @@ func DefaultBehavior() Behavior {
 			},
 		}
 	}
+}
+
+func SequenceBehavior(codes ...codes.Code) Behavior {
+	return func(id string) echo.EchoServer {
+		var echoCount, echoPremiumCount int
+
+		return &echoserver.Server{
+			EchoFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				if echoCount < len(codes) {
+					code := codes[echoCount]
+					echoCount++
+
+					return nil, status.Error(code, "nope")
+				}
+
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "standard"}, nil
+			},
+			EchoPremiumFunc: func(req *echo.EchoRequest) (*echo.EchoReply, error) {
+				if echoPremiumCount < len(codes) {
+					code := codes[echoPremiumCount]
+					echoPremiumCount++
+
+					return nil, status.Error(code, "nope")
+				}
+				return &echo.EchoReply{ServerId: id, Payload: req.Payload, Variant: "premium"}, nil
+			},
+		}
+	}
+
 }
 
 func HangBehavior(d time.Duration) Behavior {
