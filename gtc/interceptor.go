@@ -125,9 +125,9 @@ func makeFaultFilter(fault *gtcv1alpha1.FaultInterceptor) (*faultv3.HTTPFault, e
 		ff.Abort = &faultv3.FaultAbort{}
 
 		switch {
-		case fault.Abort.Status != nil:
+		case fault.Abort.Code != nil:
 			ff.Abort.ErrorType = &faultv3.FaultAbort_GrpcStatus{
-				GrpcStatus: *fault.Abort.Status,
+				GrpcStatus: *fault.Abort.Code,
 			}
 		case fault.Abort.Metadata != nil:
 			ff.Abort.ErrorType = &faultv3.FaultAbort_HeaderAbort_{}

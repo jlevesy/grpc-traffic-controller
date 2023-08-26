@@ -25,7 +25,7 @@ import (
 // FaultAbortApplyConfiguration represents an declarative configuration of the FaultAbort type for use
 // with apply.
 type FaultAbortApplyConfiguration struct {
-	Status     *uint32                     `json:"grpc,omitempty"`
+	Code       *uint32                     `json:"code,omitempty"`
 	Metadata   *v1alpha1.MetadataFault     `json:"metadata,omitempty"`
 	Percentage *FractionApplyConfiguration `json:"percentage,omitempty"`
 }
@@ -36,11 +36,11 @@ func FaultAbort() *FaultAbortApplyConfiguration {
 	return &FaultAbortApplyConfiguration{}
 }
 
-// WithStatus sets the Status field in the declarative configuration to the given value
+// WithCode sets the Code field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Status field is set to the value of the last call.
-func (b *FaultAbortApplyConfiguration) WithStatus(value uint32) *FaultAbortApplyConfiguration {
-	b.Status = &value
+// If called multiple times, the Code field is set to the value of the last call.
+func (b *FaultAbortApplyConfiguration) WithCode(value uint32) *FaultAbortApplyConfiguration {
+	b.Code = &value
 	return b
 }
 

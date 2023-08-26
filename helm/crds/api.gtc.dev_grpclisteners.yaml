@@ -46,7 +46,7 @@ spec:
                         abort:
                           description: Abort the call.
                           properties:
-                            grpc:
+                            code:
                               description: Returns the gRPC status code.
                               format: int32
                               type: integer
@@ -193,7 +193,7 @@ spec:
                                     abort:
                                       description: Abort the call.
                                       properties:
-                                        grpc:
+                                        code:
                                           description: Returns the gRPC status code.
                                           format: int32
                                           type: integer
@@ -408,7 +408,7 @@ spec:
                               abort:
                                 description: Abort the call.
                                 properties:
-                                  grpc:
+                                  code:
                                     description: Returns the gRPC status code.
                                     format: int32
                                     type: integer

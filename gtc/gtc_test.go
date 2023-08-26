@@ -1509,7 +1509,7 @@ func TestServer(t *testing.T) {
 							gtcv1alpha1.Interceptor{
 								Fault: &gtcv1alpha1.FaultInterceptor{
 									Abort: &gtcv1alpha1.FaultAbort{
-										Status: tr.Ptr(uint32(4)),
+										Code: tr.Ptr(uint32(4)),
 										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
@@ -1604,7 +1604,7 @@ func TestServer(t *testing.T) {
 							gtcv1alpha1.Interceptor{
 								Fault: &gtcv1alpha1.FaultInterceptor{
 									Abort: &gtcv1alpha1.FaultAbort{
-										Status: tr.Ptr(uint32(10)),
+										Code: tr.Ptr(uint32(10)),
 										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
@@ -1624,7 +1624,7 @@ func TestServer(t *testing.T) {
 									gtcv1alpha1.Interceptor{
 										Fault: &gtcv1alpha1.FaultInterceptor{
 											Abort: &gtcv1alpha1.FaultAbort{
-												Status: tr.Ptr(uint32(15)),
+												Code: tr.Ptr(uint32(15)),
 												Percentage: &gtcv1alpha1.Fraction{
 													Numerator:   100,
 													Denominator: "hundred",
@@ -1690,7 +1690,7 @@ func TestServer(t *testing.T) {
 							gtcv1alpha1.Interceptor{
 								Fault: &gtcv1alpha1.FaultInterceptor{
 									Abort: &gtcv1alpha1.FaultAbort{
-										Status: tr.Ptr(uint32(10)),
+										Code: tr.Ptr(uint32(10)),
 										Percentage: &gtcv1alpha1.Fraction{
 											Numerator:   100,
 											Denominator: "hundred",
@@ -1712,7 +1712,7 @@ func TestServer(t *testing.T) {
 											gtcv1alpha1.Interceptor{
 												Fault: &gtcv1alpha1.FaultInterceptor{
 													Abort: &gtcv1alpha1.FaultAbort{
-														Status: tr.Ptr(uint32(15)),
+														Code: tr.Ptr(uint32(15)),
 														Percentage: &gtcv1alpha1.Fraction{
 															Numerator:   100,
 															Denominator: "hundred",
