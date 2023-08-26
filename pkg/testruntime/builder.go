@@ -181,18 +181,14 @@ func WithBackends(backends ...gtcv1alpha1.Backend) RouteOption {
 	}
 }
 
-// func WithCaseSensitive(v bool) RouteOption {
-// 	return func(r *gtcv1alpha1.Route) {
-// 		r.CaseSensitive = v
-// 	}
-// }
+func WithRouteInterceptorOverides(overrides ...gtcv1alpha1.Interceptor) RouteOption {
+	return func(r *gtcv1alpha1.Route) {
+		r.Interceptors = overrides
+	}
+}
 
 func BuildRoute(opts ...RouteOption) gtcv1alpha1.Route {
-	r := gtcv1alpha1.Route{
-		// Path: gtcv1alpha1.PathMatcher{
-		// 	Prefix: "/",
-		// },
-	}
+	r := gtcv1alpha1.Route{}
 
 	for _, opt := range opts {
 		opt(&r)

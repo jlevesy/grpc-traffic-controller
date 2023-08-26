@@ -513,6 +513,13 @@ func (in *Route) DeepCopyInto(out *Route) {
 		*out = new(RouteMatcher)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Interceptors != nil {
+		in, out := &in.Interceptors, &out.Interceptors
+		*out = make([]Interceptor, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.MaxStreamDuration != nil {
 		in, out := &in.MaxStreamDuration, &out.MaxStreamDuration
 		*out = new(v1.Duration)

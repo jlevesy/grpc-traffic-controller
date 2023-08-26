@@ -21,8 +21,14 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 			return nil, err
 		}
 
+		filterOverrides, err := makeFilterOverrides(routeSpec.Interceptors)
+		if err != nil {
+			return nil, err
+		}
+
 		routes[routeID] = &route.Route{
-			Match: match,
+			Match:                match,
+			TypedPerFilterConfig: filterOverrides,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
 					MaxStreamDuration: &route.RouteAction_MaxStreamDuration{

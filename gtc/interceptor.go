@@ -8,6 +8,7 @@ import (
 	router "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	anyv1 "github.com/golang/protobuf/ptypes/any"
 	gtcv1alpha1 "github.com/jlevesy/grpc-traffic-controller/api/gtc/v1alpha1"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -60,6 +61,35 @@ func makeFilter(interceptor gtcv1alpha1.Interceptor) (*hcm.HttpFilter, error) {
 		}, nil
 	default:
 		return nil, errors.New("malformed filter")
+	}
+}
+
+func makeFilterOverrides(interceptors []gtcv1alpha1.Interceptor) (map[string]*anyv1.Any, error) {
+	overrides := make(map[string]*anyv1.Any, len(interceptors))
+
+	for _, spec := range interceptors {
+		name, cfg, err := makeFilterOverride(spec)
+		if err != nil {
+			return nil, err
+		}
+
+		overrides[name] = cfg
+	}
+
+	return overrides, nil
+}
+
+func makeFilterOverride(interceptor gtcv1alpha1.Interceptor) (string, *anyv1.Any, error) {
+	switch {
+	case interceptor.Fault != nil:
+		faultFilter, err := makeFaultFilter(interceptor.Fault)
+		if err != nil {
+			return "", nil, err
+		}
+
+		return wellknown.Fault, mustAny(faultFilter), nil
+	default:
+		return "", nil, errors.New("malformed filter override")
 	}
 }
 

@@ -262,7 +262,137 @@ spec:
                         applied timeout to the maximum value specified here. If set
                         to 0, the `grpc-timeout` header is used without modification.
                       type: string
+                    interceptors:
+                      description: Interceptors are a list of interceptor overrides
+                        to apply to this route. Note that the interceptors defined
+                        here must me also defined at the listener level.
+                      items:
+                        properties:
+                          fault:
+                            description: Fault Interceptor configuration.
+                            properties:
+                              abort:
+                                description: Abort the call.
+                                properties:
+                                  grpc:
+                                    description: Returns the gRPC status code.
+                                    format: int32
+                                    type: integer
+                                  metadata:
+                                    description: Metadata adds a fault controlled
+                                      by an call metadata.
+                                    type: object
+                                  percentage:
+                                    description: Percentage controls how much this
+                                      fault will occur.
+                                    properties:
+                                      denominator:
+                                        default: hundred
+                                        description: Denominator of the fration.
+                                        enum:
+                                        - hundred
+                                        - ten_thousand
+                                        - million
+                                        type: string
+                                      numerator:
+                                        description: Numerator of the fraction
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                type: object
+                              delay:
+                                description: Inject a delay.
+                                properties:
+                                  fixed:
+                                    description: FixedDelay adds a fixed delay before
+                                      a call.
+                                    type: string
+                                  metadata:
+                                    description: Metadata adds a fault controlled
+                                      by an call metadata.
+                                    type: object
+                                  percentage:
+                                    description: Percentage controls how much this
+                                      fault will occur.
+                                    properties:
+                                      denominator:
+                                        default: hundred
+                                        description: Denominator of the fration.
+                                        enum:
+                                        - hundred
+                                        - ten_thousand
+                                        - million
+                                        type: string
+                                      numerator:
+                                        description: Numerator of the fraction
+                                        format: int32
+                                        type: integer
+                                    type: object
+                                type: object
+                              headers:
+                                description: Specifies a set of headers that the filter
+                                  should match on.
+                                items:
+                                  description: HeaderMatcher indicates a match based
+                                    on an http header.
+                                  properties:
+                                    exact:
+                                      description: Match the exact value of a header.
+                                      type: string
+                                    invert:
+                                      description: Invert that header match.
+                                      type: boolean
+                                    name:
+                                      description: Name of the header to match.
+                                      type: string
+                                    prefix:
+                                      description: Header value must have a prefix.
+                                      type: string
+                                    present:
+                                      description: Header must be present.
+                                      type: boolean
+                                    range:
+                                      description: Header Value must match a range.
+                                      properties:
+                                        end:
+                                          description: End of the range (exclusive)
+                                          format: int64
+                                          type: integer
+                                        start:
+                                          description: Start of the range (inclusive)
+                                          format: int64
+                                          type: integer
+                                      type: object
+                                    regex:
+                                      description: Match a regex. Must match the whole
+                                        value.
+                                      properties:
+                                        engine:
+                                          default: re2
+                                          description: The regexp engine to use.
+                                          enum:
+                                          - re2
+                                          type: string
+                                        regex:
+                                          description: Regexp to evaluate the path
+                                            against.
+                                          type: string
+                                      type: object
+                                    suffix:
+                                      description: Header value must have a suffix.
+                                      type: string
+                                  type: object
+                                type: array
+                              maxActiveFaults:
+                                description: The maximum number of faults that can
+                                  be active at a single time.
+                                format: int32
+                                type: integer
+                            type: object
+                        type: object
+                      type: array
                     matcher:
+                      description: Matcher define a way of matching a specific route.
                       properties:
                         fraction:
                           description: Fraction allows to match a certain percentage
