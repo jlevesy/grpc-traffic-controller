@@ -26,6 +26,7 @@ import (
 // with apply.
 type RouteApplyConfiguration struct {
 	Matcher              *RouteMatcherApplyConfiguration `json:"matcher,omitempty"`
+	Interceptors         []InterceptorApplyConfiguration `json:"interceptors,omitempty"`
 	MaxStreamDuration    *v1.Duration                    `json:"maxStreamDuration,omitempty"`
 	GrpcTimeoutHeaderMax *v1.Duration                    `json:"grpcTimeoutHeaderMax,omitempty"`
 	Backends             []BackendApplyConfiguration     `json:"backends,omitempty"`
@@ -42,6 +43,19 @@ func Route() *RouteApplyConfiguration {
 // If called multiple times, the Matcher field is set to the value of the last call.
 func (b *RouteApplyConfiguration) WithMatcher(value *RouteMatcherApplyConfiguration) *RouteApplyConfiguration {
 	b.Matcher = value
+	return b
+}
+
+// WithInterceptors adds the given value to the Interceptors field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Interceptors field.
+func (b *RouteApplyConfiguration) WithInterceptors(values ...*InterceptorApplyConfiguration) *RouteApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithInterceptors")
+		}
+		b.Interceptors = append(b.Interceptors, *values[i])
+	}
 	return b
 }
 

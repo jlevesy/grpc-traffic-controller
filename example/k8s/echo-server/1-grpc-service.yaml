@@ -31,6 +31,27 @@ spec:
              port:
                 name: grpc
 ---
+# Weighted backends: v2 take 20% and v1 takes 80%
+# Listener address: xds:///echo-server/weigthed-backends
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: weighted-backends
+  namespace: echo-server
+spec:
+  routes:
+    - backends:
+        - weight: 20
+          service:
+             name: echo-server-v2
+             port:
+                name: grpc
+        - weight: 80
+          service:
+             name: echo-server-v1
+             port:
+                name: grpc
+---
 # Locality based Weighted Round Robin: This example makes all gRPC clients using this listener send 20% of their traffic to
 # the v2 instance of the echo-server, and 80% to the v1 instance.
 # Listener address: xds:///echo-server/locality-wrr
@@ -224,6 +245,101 @@ spec:
   routes:
     - backends:
         - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+---
+# Abort Injection filter fixed
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: abort-fault-injection
+  namespace: echo-server
+spec:
+  interceptors:
+    - fault:
+        abort:
+          code: 10
+          percentage:
+            numerator: 50
+  routes:
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+---
+# Abort Injection filter fixed with an override for a route
+# 90% of calls to premium will fail with code 15.
+# 50% of other calls will fail with code 10.
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: abort-fault-injection-route-override
+  namespace: echo-server
+spec:
+  interceptors:
+    - fault:
+        abort:
+          code: 10
+          percentage:
+            numerator: 50
+  routes:
+    - matcher:
+        method:
+          namespace: echo
+          service: Echo
+          method: EchoPremium
+      interceptors:
+        - fault:
+            abort:
+              code: 15
+              percentage:
+                numerator: 90
+      backends:
+        - service:
+            name: echo-server-v2
+            port:
+              name: grpc
+    - backends:
+        - service:
+            name: echo-server-v1
+            port:
+              name: grpc
+---
+# Abort Injection filter fixed with an override for a backend
+# 80% of the calls are going to the v2 service
+# 20% are going to the v1 service.
+# For those calls:
+# 90% of calls routed to the v2 service will fail with code 15.
+# 50% of other calls will fail with code 10.
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: abort-fault-injection-backend-override
+  namespace: echo-server
+spec:
+  interceptors:
+    - fault:
+        abort:
+          code: 10
+          percentage:
+            numerator: 50
+  routes:
+    - backends:
+        - weight: 80
+          interceptors:
+            - fault:
+                abort:
+                  code: 15
+                  percentage:
+                    numerator: 90
+          service:
+            name: echo-server-v2
+            port:
+              name: grpc
+        - weight: 20
+          service:
             name: echo-server-v1
             port:
               name: grpc

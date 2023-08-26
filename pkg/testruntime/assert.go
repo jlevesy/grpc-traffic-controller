@@ -10,8 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	echo "github.com/jlevesy/grpc-traffic-controller/pkg/echoserver/proto"
 )
@@ -228,6 +230,15 @@ func NoCallErrors(t *testing.T, calls []call) {
 func MustFail(t *testing.T, calls []call) {
 	for _, c := range calls {
 		require.Error(t, c.err)
+	}
+}
+
+func MustFailWithCode(wantCode codes.Code) func(t *testing.T, calls []call) {
+	return func(t *testing.T, calls []call) {
+		for _, c := range calls {
+			gotCode := status.Code(c.err)
+			assert.Equal(t, gotCode, wantCode)
+		}
 	}
 }
 

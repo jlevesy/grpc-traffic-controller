@@ -21,8 +21,25 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 			return nil, err
 		}
 
+		filterOverrides, err := makeFilterOverrides(routeSpec.Interceptors)
+		if err != nil {
+			return nil, err
+		}
+
+		weighedClusters, err := makeWeightedClusters(
+			listener.Namespace,
+			listener.Name,
+			routeID,
+			routeSpec,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
 		routes[routeID] = &route.Route{
-			Match: match,
+			Match:                match,
+			TypedPerFilterConfig: filterOverrides,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
 					MaxStreamDuration: &route.RouteAction_MaxStreamDuration{
@@ -30,12 +47,7 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 						GrpcTimeoutHeaderMax: makeDuration(routeSpec.GrpcTimeoutHeaderMax),
 					},
 					ClusterSpecifier: &route.RouteAction_WeightedClusters{
-						WeightedClusters: makeWeightedClusters(
-							listener.Namespace,
-							listener.Name,
-							routeID,
-							routeSpec,
-						),
+						WeightedClusters: weighedClusters,
 					},
 				},
 			},
@@ -173,22 +185,28 @@ func makeRegexMatcher(spec *gtcv1alpha1.RegexMatcher) (*matcher.RegexMatcher, er
 	}, nil
 }
 
-func makeWeightedClusters(namespace, name string, routeID int, routeSpec gtcv1alpha1.Route) *route.WeightedCluster {
+func makeWeightedClusters(namespace, name string, routeID int, routeSpec gtcv1alpha1.Route) (*route.WeightedCluster, error) {
 	var (
 		totalWeight     uint32
 		weighedClusters = make([]*route.WeightedCluster_ClusterWeight, len(routeSpec.Backends))
 	)
 
 	for backendID, backend := range routeSpec.Backends {
+		filterOverrides, err := makeFilterOverrides(backend.Interceptors)
+		if err != nil {
+			return nil, err
+		}
+
 		totalWeight += backend.Weight
 		weighedClusters[backendID] = &route.WeightedCluster_ClusterWeight{
-			Name:   backendName(namespace, name, routeID, backendID),
-			Weight: wrapperspb.UInt32(backend.Weight),
+			Name:                 backendName(namespace, name, routeID, backendID),
+			Weight:               wrapperspb.UInt32(backend.Weight),
+			TypedPerFilterConfig: filterOverrides,
 		}
 	}
 
 	return &route.WeightedCluster{
 		TotalWeight: wrapperspb.UInt32(totalWeight),
 		Clusters:    weighedClusters,
-	}
+	}, nil
 }

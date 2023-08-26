@@ -21,7 +21,7 @@ type FaultInterceptor struct {
 
 type FaultAbort struct {
 	// Returns the gRPC status code.
-	Status *uint32 `json:"grpc,omitempty"`
+	Code *uint32 `json:"code,omitempty"`
 	// Metadata adds a fault controlled by an call metadata.
 	Metadata *MetadataFault `json:"metadata,omitempty"`
 	// Percentage controls how much this fault will occur.

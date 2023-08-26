@@ -50,12 +50,18 @@ type GRPCListenerSpec struct {
 
 // Route allows to match an outoing request to a specific cluster, it allows to do HTTP level manipulation on the outgoing requests as well as matching.
 type Route struct {
+	// Matcher define a way of matching a specific route.
 	Matcher *RouteMatcher `json:"matcher,omitempty"`
+
+	// Interceptors are a list of interceptor overrides to apply to this route.
+	// Note that the interceptors defined here must me also defined at the listener level.
+	Interceptors []Interceptor `json:"interceptors,omitempty"`
 
 	// Only handle a fraction of matching requests.
 	// RuntimeFraction *Fraction `json:"fraction,omitempty"`
 	// Specifies the maximum duration allowed for streams on the route.
 	MaxStreamDuration *metav1.Duration `json:"maxStreamDuration,omitempty"`
+
 	// Specifies the maximum duration allowed for streams on the route.
 	// If present, and the request contains a `grpc-timeout header
 	// <https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md>`_, use that value as the
@@ -133,6 +139,10 @@ type Backend struct {
 	Weight uint32 `json:"weight,omitempty"`
 	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
 	MaxRequests *uint32 `json:"maxRequests,omitempty"`
+
+	// Interceptors are a list of interceptor overrides to apply to this backend.
+	// Note that the interceptors defined here must me also defined at the listener level.
+	Interceptors []Interceptor `json:"interceptors,omitempty"`
 
 	// Service is a reference to a k8s service.
 	// +optional
