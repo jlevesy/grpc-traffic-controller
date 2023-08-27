@@ -43,6 +43,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &gtcv1alpha1.GRPCListenerApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("GRPCListenerSpec"):
 		return &gtcv1alpha1.GRPCListenerSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HashPolicy"):
+		return &gtcv1alpha1.HashPolicyApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("HeaderMatcher"):
 		return &gtcv1alpha1.HeaderMatcherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Interceptor"):

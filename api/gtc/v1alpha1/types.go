@@ -61,6 +61,10 @@ type Route struct {
 	// Note that the interceptors defined here must me also defined at the listener level.
 	Interceptors []Interceptor `json:"interceptors,omitempty"`
 
+	// HashPolicy are a list of heuristics to apply to obtain a hash for a given request.
+	// Multiple policies result are combined.
+	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
 	// Only handle a fraction of matching requests.
 	// RuntimeFraction *Fraction `json:"fraction,omitempty"`
 	// Specifies the maximum duration allowed for streams on the route.
@@ -212,6 +216,18 @@ type RetryBackoff struct {
 	// Specifies the maximum interval between retries. This parameter is optional, but must be greater than or equal to the base_interval if set. The default is 10 times the base_interval
 	// +optional
 	MaxInterval *metav1.Duration `json:"maxInterval,omitempty"`
+}
+
+// HashPolicy indicates a way of obtaining a hash from a request.
+// It could be either using a medatada name
+// be based on the channel ID of the request.
+type HashPolicy struct {
+	// Metadata indicates rpc metadata call value to obtain a hash.
+	Metadata string `json:"metadata,omitempty"`
+	// Channel indicates to use the chanel_id to obtain a hash.
+	Channel *bool `json:"channel,omitempty"`
+	// Terminal tells to stop the hashing process if this policy is successful.
+	Terminal bool `json:"terminal,omitempty"`
 }
 
 // GRPCListenerList contains a list of GRPCListener
