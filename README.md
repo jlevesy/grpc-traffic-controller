@@ -1,20 +1,21 @@
 # gTC: gRPC Traffic Controller
 
-gRPC Traffic Controller (or gTC) is a Kubernetes controller that allows through a manifest to describe routing configuration between gRPC clients and servers. It provides configuration to the clients using the gRPC xDS service discovery integration available in most of the major gRPC distributions.
+gRPC Traffic Controller (or gTC) is a Kubernetes controller that allows through a manifest to describe routing configuration between gRPC clients and servers. It provides configuration to the clients using the gRPC xDS service discovery integration available in all major gRPC implemetations.
 
-It comes bundled with a lot of advanced features like:
+Some of the gRPC features supported by gTC:
 
 - Traffic Splitting and Routing
-- Locality Fallback
+- Weighted Load Balancing
 - Circuit breaking
 - Retries
 - Fault injection
+- Locality Fallback
+- Hash Ring Load Balancing
 
-Some ideas I wish to integrate:
+Some features I wish to add:
 
 - Prometheus Metrics
-- Easier setup of the xDS client
-- First class integration of SPIFFE and SPIRE, for both TLS and RBAC.
+- Integration of SPIFFE and SPIRE, for both TLS and RBAC.
 
 ## Usage Examples
 
@@ -22,7 +23,7 @@ See [the example setup](./example/k8s/echo-server/1-grpc-service.yaml).
 
 ## Current Status
 
-xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), the table tracks their support in gTC.
+xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/cpp/md_doc_grpc_xds_features.html), this table tracks their support in gTC.
 
 | gRFC  | Status |
 | ------------- | ------------- |
@@ -35,9 +36,9 @@ xDS features implemented in gRPC are listed [here](https://grpc.github.io/grpc/c
 | [A36](https://github.com/grpc/proposal/blob/master/A36-xds-for-servers.md)  | TODO |
 | [A39](https://github.com/grpc/proposal/blob/master/A39-xds-http-filters.md)  | Supported filters at listener, route and backend level |
 | [A40](https://github.com/grpc/proposal/blob/master/A40-csds-support.md)  | TODO, Not directly related but it highlight the need of supporting CSDS on gTC's end? |
-| [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | TODO |
-| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | Supported, both on route and listener |
 | [A41](https://github.com/grpc/proposal/blob/master/A41-xds-rbac.md)  | TODO |
+| [A42](https://github.com/grpc/proposal/blob/master/A42-xds-ring-hash-lb-policy.md) | Supported: Route Hash Policies and LB Policy on backend |
+| [A44](https://github.com/grpc/proposal/blob/master/A44-xds-retry.md)  | Supported, both on route and listener |
 
 - I indend to suport xDS enabled gRPC servers, yet it might require a slight API change, or even a new CRD. More thinking is needed here.
 - LRS server side is left out of scope at the moment, though it could be an interesting thing to elaborate (expose load metrics?) I am unsure of what to do with for now.
