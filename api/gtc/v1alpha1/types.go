@@ -61,6 +61,10 @@ type Route struct {
 	// Note that the interceptors defined here must me also defined at the listener level.
 	Interceptors []Interceptor `json:"interceptors,omitempty"`
 
+	// HashPolicy are a list of heuristics to apply to obtain a hash for a given request.
+	// Multiple policies result are combined.
+	HashPolicy []HashPolicy `json:"hashPolicy,omitempty"`
+
 	// Only handle a fraction of matching requests.
 	// RuntimeFraction *Fraction `json:"fraction,omitempty"`
 	// Specifies the maximum duration allowed for streams on the route.
@@ -148,6 +152,16 @@ type Backend struct {
 	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
 	MaxRequests *uint32 `json:"maxRequests,omitempty"`
 
+	// Weight is the weight of this cluster.
+	// +optional
+	// +kubebuilder:validation:Enum:=round_robin;roundRobin;ring_hash;ringHash
+	// +kubebuilder:default:=round_robin
+	LBPolicy string `json:"lbPolicy,omitempty"`
+
+	//RingHashConfig is an optional configuration for the ring_hash lb policy
+	// +optional
+	RingHashConfig *RingHashConfig `json:"ringHashConfig"`
+
 	// Interceptors are a list of interceptor overrides to apply to this backend.
 	// Note that the interceptors defined here must me also defined at the listener level.
 	Interceptors []Interceptor `json:"interceptors,omitempty"`
@@ -158,6 +172,17 @@ type Backend struct {
 	// Localities is a list of prioritized and weighted localities for a backend.
 	// +optional
 	Localities []Locality `json:"localities,omitempty"`
+}
+
+type RingHashConfig struct {
+	// Minimum hash ring size. The larger the ring is (that is, the more hashes there are for each
+	// provided host) the better the request distribution will reflect the desired weights.
+	// +kubebuilder:default:=1024
+	MinRingSize uint64 `json:"minRingSize,omitempty"`
+	// Maximum hash ring size. Defaults to 8M entries, and limited to 8M entries, but can be lowered
+	// to further constrain resource use.
+	// +kubebuilder:default:=838860
+	MaxRingSize uint64 `json:"maxRingSize,omitempty"`
 }
 
 // Locality is a weighted and prioritized locality for a backend.
@@ -212,6 +237,18 @@ type RetryBackoff struct {
 	// Specifies the maximum interval between retries. This parameter is optional, but must be greater than or equal to the base_interval if set. The default is 10 times the base_interval
 	// +optional
 	MaxInterval *metav1.Duration `json:"maxInterval,omitempty"`
+}
+
+// HashPolicy indicates a way of obtaining a hash from a request.
+// It could be either using a medatada name
+// be based on the channel ID of the request.
+type HashPolicy struct {
+	// Metadata indicates rpc metadata call value to obtain a hash.
+	Metadata string `json:"metadata,omitempty"`
+	// Channel indicates to use the chanel_id to obtain a hash.
+	Channel *bool `json:"channel,omitempty"`
+	// Terminal tells to stop the hashing process if this policy is successful.
+	Terminal bool `json:"terminal,omitempty"`
 }
 
 // GRPCListenerList contains a list of GRPCListener

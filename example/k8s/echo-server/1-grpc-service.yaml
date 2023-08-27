@@ -413,3 +413,20 @@ spec:
             name: echo-server-v1
             port:
               name: grpc
+---
+# Ring hash loadbalancing based on a call metadata
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: ring-hash
+  namespace: echo-server
+spec:
+  routes:
+    - hashPolicy:
+        - metadata: region
+      backends:
+        - lbPolicy: ringHash
+          service:
+            name: echo-server-v1
+            port:
+              name: grpc

@@ -2182,6 +2182,77 @@ func TestServer(t *testing.T) {
 			updateResources:    noChange,
 			doAssertPostUpdate: noAssert,
 		},
+		{
+			desc:         "ring hash backend lb policy",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				return tr.BuildEndpointSlices(
+					serviceNameV1,
+					defaultNamespace,
+					backends,
+				)
+			},
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithRouteHashPolicy(
+									gtcv1alpha1.HashPolicy{Metadata: "country"},
+								),
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithBackendLBPolicy("ring_hash"),
+										tr.WithBackendRingHashConfig(
+											gtcv1alpha1.RingHashConfig{
+												MinRingSize: 1024,
+												MaxRingSize: 838860,
+											},
+										),
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.MultiAssert(
+				tr.CallN(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(map[string]string{"country": "france"}),
+					),
+					10,
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertOneBackendGotAllCalls(10),
+					),
+				),
+				tr.CallN(
+					tr.BuildCaller(
+						tr.MethodEcho,
+						tr.WithMetadata(map[string]string{"country": "sweden"}),
+					),
+					10,
+					tr.NoCallErrors,
+					tr.CountByBackendID(
+						tr.AssertOneBackendGotAllCalls(10),
+					),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
 			backends, err := tr.StartBackends(

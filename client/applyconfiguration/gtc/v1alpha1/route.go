@@ -27,6 +27,7 @@ import (
 type RouteApplyConfiguration struct {
 	Matcher              *RouteMatcherApplyConfiguration `json:"matcher,omitempty"`
 	Interceptors         []InterceptorApplyConfiguration `json:"interceptors,omitempty"`
+	HashPolicy           []HashPolicyApplyConfiguration  `json:"hashPolicy,omitempty"`
 	MaxStreamDuration    *v1.Duration                    `json:"maxStreamDuration,omitempty"`
 	GrpcTimeoutHeaderMax *v1.Duration                    `json:"grpcTimeoutHeaderMax,omitempty"`
 	Retry                *RetryPolicyApplyConfiguration  `json:"retry,omitempty"`
@@ -56,6 +57,19 @@ func (b *RouteApplyConfiguration) WithInterceptors(values ...*InterceptorApplyCo
 			panic("nil value passed to WithInterceptors")
 		}
 		b.Interceptors = append(b.Interceptors, *values[i])
+	}
+	return b
+}
+
+// WithHashPolicy adds the given value to the HashPolicy field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the HashPolicy field.
+func (b *RouteApplyConfiguration) WithHashPolicy(values ...*HashPolicyApplyConfiguration) *RouteApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithHashPolicy")
+		}
+		b.HashPolicy = append(b.HashPolicy, *values[i])
 	}
 	return b
 }

@@ -44,11 +44,17 @@ func makeRouteConfig(listenerName string, listener *gtcv1alpha1.GRPCListener) (*
 			routeRetryPolicy = makeRetryPolicy(routeSpec.Retry)
 		}
 
+		hashPolicy, err := makeHashPolicy(routeSpec.HashPolicy)
+		if err != nil {
+			return nil, err
+		}
+
 		routes[routeID] = &route.Route{
 			Match:                match,
 			TypedPerFilterConfig: filterOverrides,
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
+					HashPolicy:  hashPolicy,
 					RetryPolicy: routeRetryPolicy,
 					MaxStreamDuration: &route.RouteAction_MaxStreamDuration{
 						MaxStreamDuration:    makeDuration(routeSpec.MaxStreamDuration),
@@ -251,4 +257,40 @@ func makeRetryPolicy(spec *gtcv1alpha1.RetryPolicy) *route.RetryPolicy {
 		NumRetries:   wrapperspb.UInt32(numRetries),
 		RetryBackOff: backoff,
 	}
+}
+
+func makeHashPolicy(policies []gtcv1alpha1.HashPolicy) ([]*route.RouteAction_HashPolicy, error) {
+	if len(policies) == 0 {
+		return nil, nil
+	}
+
+	result := make([]*route.RouteAction_HashPolicy, len(policies))
+
+	for i, policy := range policies {
+		switch {
+		case policy.Metadata != "":
+			result[i] = &route.RouteAction_HashPolicy{
+				PolicySpecifier: &route.RouteAction_HashPolicy_Header_{
+					Header: &route.RouteAction_HashPolicy_Header{
+						HeaderName: policy.Metadata,
+					},
+				},
+				Terminal: policy.Terminal,
+			}
+		case policy.Channel != nil && *policy.Channel:
+			result[i] = &route.RouteAction_HashPolicy{
+				PolicySpecifier: &route.RouteAction_HashPolicy_FilterState_{
+					FilterState: &route.RouteAction_HashPolicy_FilterState{
+						Key: "io.grpc.channel_id",
+					},
+				},
+				Terminal: policy.Terminal,
+			}
+
+		default:
+			return nil, errors.New("malformed hash policy")
+		}
+	}
+
+	return result, nil
 }

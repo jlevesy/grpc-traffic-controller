@@ -43,6 +43,18 @@ func WithBackendInterceptorOverrides(is ...gtcv1alpha1.Interceptor) BackendOptio
 	}
 }
 
+func WithBackendRingHashConfig(config gtcv1alpha1.RingHashConfig) BackendOption {
+	return func(c *gtcv1alpha1.Backend) {
+		c.RingHashConfig = &config
+	}
+}
+
+func WithBackendLBPolicy(p string) BackendOption {
+	return func(c *gtcv1alpha1.Backend) {
+		c.LBPolicy = p
+	}
+}
+
 func BuildBackend(opts ...BackendOption) gtcv1alpha1.Backend {
 	c := gtcv1alpha1.Backend{Weight: 1}
 
@@ -196,6 +208,12 @@ func WithRouteInterceptorOverrides(overrides ...gtcv1alpha1.Interceptor) RouteOp
 func WithRouteRetry(retry gtcv1alpha1.RetryPolicy) RouteOption {
 	return func(r *gtcv1alpha1.Route) {
 		r.Retry = &retry
+	}
+}
+
+func WithRouteHashPolicy(ps ...gtcv1alpha1.HashPolicy) RouteOption {
+	return func(r *gtcv1alpha1.Route) {
+		r.HashPolicy = ps
 	}
 }
 

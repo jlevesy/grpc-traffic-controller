@@ -294,6 +294,28 @@ func AssertCount(backendID string, wantCount int) AggregatedCallAssertion {
 	}
 }
 
+// Assert that only one backend got all the calls.
+func AssertOneBackendGotAllCalls(wantCount int) AggregatedCallAssertion {
+	return func(t *testing.T, aggs map[string]int) {
+		var gotAll bool
+
+		for _, gotCount := range aggs {
+			if gotCount == wantCount {
+				if gotAll {
+					t.Fail()
+				}
+
+				gotAll = true
+				continue
+			}
+
+			assert.Equal(t, 0, gotCount)
+		}
+
+		assert.True(t, gotAll)
+	}
+}
+
 func AssertAggregatedValuePartial(partial string, wantCount int) AggregatedCallAssertion {
 	return func(t *testing.T, aggs map[string]int) {
 		var matchCount int
