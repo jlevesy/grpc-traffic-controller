@@ -2,6 +2,7 @@ package gtc
 
 import (
 	"fmt"
+	"strings"
 
 	cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -53,6 +54,7 @@ func (h *clusterHandler) resolveResource(req resolveRequest) (*resolveResponse, 
 func makeCluster(clusterName string, spec gtcv1alpha1.Backend) *cluster.Cluster {
 	c := cluster.Cluster{
 		Name:                 clusterName,
+		LbPolicy:             makeLBPolicy(spec.LBPolicy),
 		ClusterDiscoveryType: &cluster.Cluster_Type{Type: cluster.Cluster_EDS},
 		EdsClusterConfig: &cluster.Cluster_EdsClusterConfig{
 			EdsConfig: &core.ConfigSource{
@@ -62,7 +64,6 @@ func makeCluster(clusterName string, spec gtcv1alpha1.Backend) *cluster.Cluster 
 			},
 			ServiceName: clusterName,
 		},
-		LbPolicy: cluster.Cluster_ROUND_ROBIN,
 	}
 
 	// gRPC xDS only supports max requests, and will always look to the first value of the first threshold.
@@ -72,6 +73,16 @@ func makeCluster(clusterName string, spec gtcv1alpha1.Backend) *cluster.Cluster 
 				{
 					MaxRequests: wrapperspb.UInt32(*spec.MaxRequests),
 				},
+			},
+		}
+	}
+
+	if spec.RingHashConfig != nil {
+		c.LbConfig = &cluster.Cluster_RingHashLbConfig_{
+			RingHashLbConfig: &cluster.Cluster_RingHashLbConfig{
+				MinimumRingSize: wrapperspb.UInt64(spec.RingHashConfig.MinRingSize),
+				MaximumRingSize: wrapperspb.UInt64(spec.RingHashConfig.MaxRingSize),
+				HashFunction:    cluster.Cluster_RingHashLbConfig_XX_HASH,
 			},
 		}
 	}
@@ -100,6 +111,18 @@ func findBackendSpec(backendRef parsedBackendName, listener *gtcv1alpha1.GRPCLis
 	}
 
 	return route.Backends[backendRef.BackendID], nil
+}
+
+func makeLBPolicy(p string) cluster.Cluster_LbPolicy {
+	switch strings.ToLower(p) {
+	case "ringhash", "ring_hash":
+		return cluster.Cluster_RING_HASH
+	case "roundrobin", "round_robin":
+		fallthrough
+	default:
+		return cluster.Cluster_ROUND_ROBIN
+
+	}
 }
 
 type routeNotFoundError struct {

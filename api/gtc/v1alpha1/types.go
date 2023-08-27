@@ -152,6 +152,16 @@ type Backend struct {
 	// MaxRequests qualifies the maximum number of parallel requests allowd to the upstream cluster.
 	MaxRequests *uint32 `json:"maxRequests,omitempty"`
 
+	// Weight is the weight of this cluster.
+	// +optional
+	// +kubebuilder:validation:Enum:=round_robin;roundRobin;ring_hash;ringHash
+	// +kubebuilder:default:=round_robin
+	LBPolicy string `json:"lbPolicy,omitempty"`
+
+	//RingHashConfig is an optional configuration for the ring_hash lb policy
+	// +optional
+	RingHashConfig *RingHashConfig `json:"ringHashConfig"`
+
 	// Interceptors are a list of interceptor overrides to apply to this backend.
 	// Note that the interceptors defined here must me also defined at the listener level.
 	Interceptors []Interceptor `json:"interceptors,omitempty"`
@@ -162,6 +172,17 @@ type Backend struct {
 	// Localities is a list of prioritized and weighted localities for a backend.
 	// +optional
 	Localities []Locality `json:"localities,omitempty"`
+}
+
+type RingHashConfig struct {
+	// Minimum hash ring size. The larger the ring is (that is, the more hashes there are for each
+	// provided host) the better the request distribution will reflect the desired weights.
+	// +kubebuilder:default:=1024
+	MinRingSize uint64 `json:"minRingSize,omitempty"`
+	// Maximum hash ring size. Defaults to 8M entries, and limited to 8M entries, but can be lowered
+	// to further constrain resource use.
+	// +kubebuilder:default:=838860
+	MaxRingSize uint64 `json:"maxRingSize,omitempty"`
 }
 
 // Locality is a weighted and prioritized locality for a backend.

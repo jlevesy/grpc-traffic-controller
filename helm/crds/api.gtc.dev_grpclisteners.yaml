@@ -349,6 +349,15 @@ spec:
                                   type: object
                               type: object
                             type: array
+                          lbPolicy:
+                            default: round_robin
+                            description: Weight is the weight of this cluster.
+                            enum:
+                            - round_robin
+                            - roundRobin
+                            - ring_hash
+                            - ringHash
+                            type: string
                           localities:
                             description: Localities is a list of prioritized and weighted
                               localities for a backend.
@@ -396,6 +405,26 @@ spec:
                               of parallel requests allowd to the upstream cluster.
                             format: int32
                             type: integer
+                          ringHashConfig:
+                            description: RingHashConfig is an optional configuration
+                              for the ring_hash lb policy
+                            properties:
+                              maxRingSize:
+                                default: 838860
+                                description: Maximum hash ring size. Defaults to 8M
+                                  entries, and limited to 8M entries, but can be lowered
+                                  to further constrain resource use.
+                                format: int64
+                                type: integer
+                              minRingSize:
+                                default: 1024
+                                description: Minimum hash ring size. The larger the
+                                  ring is (that is, the more hashes there are for
+                                  each provided host) the better the request distribution
+                                  will reflect the desired weights.
+                                format: int64
+                                type: integer
+                            type: object
                           service:
                             description: Service is a reference to a k8s service.
                             properties:
@@ -430,6 +459,29 @@ spec:
                         applied timeout to the maximum value specified here. If set
                         to 0, the `grpc-timeout` header is used without modification.
                       type: string
+                    hashPolicy:
+                      description: HashPolicy are a list of heuristics to apply to
+                        obtain a hash for a given request. Multiple policies result
+                        are combined.
+                      items:
+                        description: HashPolicy indicates a way of obtaining a hash
+                          from a request. It could be either using a medatada name
+                          be based on the channel ID of the request.
+                        properties:
+                          channel:
+                            description: Channel indicates to use the chanel_id to
+                              obtain a hash.
+                            type: boolean
+                          metadata:
+                            description: Metadata indicates rpc metadata call value
+                              to obtain a hash.
+                            type: string
+                          terminal:
+                            description: Terminal tells to stop the hashing process
+                              if this policy is successful.
+                            type: boolean
+                        type: object
+                      type: array
                     interceptors:
                       description: Interceptors are a list of interceptor overrides
                         to apply to this route. Note that the interceptors defined

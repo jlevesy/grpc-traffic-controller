@@ -65,6 +65,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &gtcv1alpha1.RetryBackoffApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RetryPolicy"):
 		return &gtcv1alpha1.RetryPolicyApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("RingHashConfig"):
+		return &gtcv1alpha1.RingHashConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Route"):
 		return &gtcv1alpha1.RouteApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RouteMatcher"):
