@@ -75,6 +75,7 @@ func (c *configWatcher) watch(ctx context.Context, streamState stream.StreamStat
 		req := resolveRequest{
 			typeUrl:       initialReq.TypeUrl,
 			resourceNames: initialReq.ResourceNames,
+			nodeInfo:      initialReq.Node,
 		}
 
 		if resp, err := c.resolver.resolveResource(req); err == nil {
@@ -105,6 +106,7 @@ func (c *configWatcher) watch(ctx context.Context, streamState stream.StreamStat
 			req := resolveRequest{
 				typeUrl:       ref.typeURL,
 				resourceNames: []string{ref.resourceName},
+				nodeInfo:      initialReq.Node,
 			}
 
 			resp, err := c.resolver.resolveResource(req)
