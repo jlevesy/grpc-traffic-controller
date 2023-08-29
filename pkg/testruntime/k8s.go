@@ -95,17 +95,31 @@ func BuildEndpointSlices(name, namespace string, backends []Backend) []discovery
 	slices := make([]discoveryv1.EndpointSlice, len(backends))
 
 	for i, b := range backends {
-		slices[i] = buildEndpointSlice(i, name, namespace, b)
+		slices[i] = BuildEndpointSlice(i, name, namespace, b)
 	}
 
 	return slices
 }
 
-func buildEndpointSlice(id int, name, namespace string, backend Backend) discoveryv1.EndpointSlice {
+type EndpointSliceOption func(*discoveryv1.EndpointSlice)
+
+func WithEndpointZone(zone string) EndpointSliceOption {
+	return func(s *discoveryv1.EndpointSlice) {
+		s.Endpoints[0].Zone = &zone
+	}
+}
+
+func WithEndpointHints(hints discoveryv1.EndpointHints) EndpointSliceOption {
+	return func(s *discoveryv1.EndpointSlice) {
+		s.Endpoints[0].Hints = &hints
+	}
+}
+
+func BuildEndpointSlice(id int, name, namespace string, backend Backend, opts ...EndpointSliceOption) discoveryv1.EndpointSlice {
 	_, p, _ := net.SplitHostPort(backend.Listener.Addr().String())
 	pp, _ := strconv.Atoi(p)
 
-	return discoveryv1.EndpointSlice{
+	slice := discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%d", name, id),
 			Namespace: namespace,
@@ -128,6 +142,12 @@ func buildEndpointSlice(id int, name, namespace string, backend Backend) discove
 			},
 		},
 	}
+
+	for _, opt := range opts {
+		opt(&slice)
+	}
+
+	return slice
 }
 
 func grpcListenersToRuntimeObjects(listeners []gtcv1alpha1.GRPCListener) []runtime.Object {

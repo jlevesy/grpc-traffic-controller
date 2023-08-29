@@ -11,6 +11,9 @@
     }
   ],
   "node": {
-    "id": "test-id"
+    "id": "test-id",
+    "locality": {
+      "zone": "zone-a"
+    }
   }
 }
