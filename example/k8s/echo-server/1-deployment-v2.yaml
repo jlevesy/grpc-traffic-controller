@@ -17,6 +17,13 @@ spec:
         app: echo-server-v2
     spec:
       serviceAccountName: echo-server
+      topologySpreadConstraints:
+        - maxSkew: 1
+          labelSelector:
+            matchLabels:
+              app: echo-server-v2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
       containers:
       - image: ko://github.com/jlevesy/grpc-traffic-controller/example/cmd/server
         imagePullPolicy: Always
