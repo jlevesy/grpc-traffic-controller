@@ -430,3 +430,18 @@ spec:
             name: echo-server-v1
             port:
               name: grpc
+---
+# Topology aware routing enabled
+# Listener address: xds:///echo-server/tar-v1
+apiVersion: api.gtc.dev/v1alpha1
+kind: GRPCListener
+metadata:
+  name: tar-v1
+  namespace: echo-server
+spec:
+  routes:
+    - backends:
+        - service:
+             name: echo-server-v1-tar
+             port:
+                name: grpc
