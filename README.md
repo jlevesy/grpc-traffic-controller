@@ -11,6 +11,7 @@ Some of the gRPC features supported by gTC:
 - Fault injection
 - Locality Fallback
 - Hash Ring Load Balancing
+- Topology Aware Routing, if a destination service has [TAR enabled](https://kubernetes.io/docs/concepts/services-networking/topology-aware-routing/), gTC will serve the hinted endpoints with a higher priority.
 
 Some features I wish to add:
 
