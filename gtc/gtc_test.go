@@ -2253,6 +2253,79 @@ func TestServer(t *testing.T) {
 			updateResources:    noChange,
 			doAssertPostUpdate: noAssert,
 		},
+		{
+			desc:         "topology aware routing",
+			backendCount: 2,
+			buildEndpointSlices: func(backends []tr.Backend) []discoveryv1.EndpointSlice {
+				slice0 := tr.BuildEndpointSlice(
+					0,
+					serviceNameV1,
+					defaultNamespace,
+					backends[0],
+					tr.WithEndpointZone("zone-a"),
+					tr.WithEndpointHints(
+						discoveryv1.EndpointHints{
+							ForZones: []discoveryv1.ForZone{
+								{Name: "zone-a"},
+							},
+						},
+					),
+				)
+
+				slice1 := tr.BuildEndpointSlice(
+					1,
+					serviceNameV1,
+					defaultNamespace,
+					backends[1],
+					tr.WithEndpointZone("zone-b"),
+					tr.WithEndpointHints(
+						discoveryv1.EndpointHints{
+							ForZones: []discoveryv1.ForZone{
+								{Name: "zone-b"},
+							},
+						},
+					),
+				)
+
+				return []discoveryv1.EndpointSlice{slice0, slice1}
+			},
+			buildGRPCListeners: func([]tr.Backend) []gtcv1alpha1.GRPCListener {
+				return []gtcv1alpha1.GRPCListener{
+					tr.BuildGRPCListener(
+						"test-xds",
+						"default",
+						tr.WithRoutes(
+							tr.BuildRoute(
+								tr.WithBackends(
+									tr.BuildBackend(
+										tr.WithServiceRef(
+											gtcv1alpha1.ServiceRef{
+												Name: serviceNameV1,
+												Port: grpcPort,
+											},
+										),
+									),
+								),
+							),
+						),
+					),
+				}
+			},
+			buildCallContext:    tr.DefaultCallContext("xds:///default/test-xds"),
+			setBackendsBehavior: answer,
+			doAssertPreUpdate: tr.CallN(
+				tr.BuildCaller(
+					tr.MethodEcho,
+				),
+				10,
+				tr.NoCallErrors,
+				tr.CountByBackendID(
+					tr.AssertCount("backend-0", 10),
+				),
+			),
+			updateResources:    noChange,
+			doAssertPostUpdate: noAssert,
+		},
 	} {
 		t.Run(testCase.desc, func(t *testing.T) {
 			backends, err := tr.StartBackends(

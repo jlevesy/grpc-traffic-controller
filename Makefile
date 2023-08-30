@@ -44,15 +44,6 @@ client_shell_0:
 client_shell_1:
 	kubectl exec -n echo-client -ti $(shell kubectl -n echo-client get pods  -o jsonpath="{.items[1].metadata.name}") -- $(CMD)
 
-.PHONY: debug_client
-debug_client:
-	GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json dlv debug ./example/cmd/client -- -addr xds:///echo-server/basic coucou
-
-.PHONY: local_client
-local_client:
-	GRPC_GO_LOG_VERBOSITY_LEVEL=99 GRPC_GO_LOG_SEVERITY_LEVEL=info GRPC_XDS_BOOTSTRAP=./pkg/echoserver/xds-bootstrap.json go run ./example/cmd/client -addr xds:///echo-server/basic coucou
-
-
 .PHONY: install_example
 install_example: gen_protoc ## install an example in the current cluster
 	KO_DOCKER_REPO=gtc-registry.localhost:5000 ko apply -f ./example/k8s/echo-server
@@ -62,7 +53,16 @@ install_example: gen_protoc ## install an example in the current cluster
 create_cluster: ## run a local k3d cluster
 	k3d cluster create \
 		--image="rancher/k3s:$(K3S_VERSION)" \
-		--port "16000:30000@server:0" \
+		--agents=2\
+		--k3s-node-label="topology.kubernetes.io/region=local@server:0" \
+		--k3s-node-label="topology.kubernetes.io/zone=zone-a@server:0" \
+		--k3s-node-label="failure-domain.beta.kubernetes.io/zone=zone-a@server:0" \
+		--k3s-node-label="topology.kubernetes.io/region=local@agent:0" \
+		--k3s-node-label="topology.kubernetes.io/zone=zone-b@agent:0" \
+		--k3s-node-label="failure-domain.beta.kubernetes.io/zone=zone-b@agent:0" \
+		--k3s-node-label="topology.kubernetes.io/region=local@agent:1" \
+		--k3s-node-label="topology.kubernetes.io/zone=zone-c@agent:1" \
+		--k3s-node-label="failure-domain.beta.kubernetes.io/zone=zone-c@agent:1" \
 		--registry-create=gtc-registry.localhost:0.0.0.0:5000 \
 		gtc-dev
 
@@ -82,7 +82,6 @@ deploy: generate deploy_crds
 		--set image.devRef=ko://github.com/jlevesy/grpc-traffic-controller/cmd/controller \
 		--set logLevel=$(LOG_LEVEL) \
 		gtc-dev ./helm | KO_DOCKER_REPO=gtc-registry.localhost:5000 ko apply -B -t dev -f -
-	kubectl apply -f example/k8s/gtc-nodeport.yaml
 
 ##@ Build
 

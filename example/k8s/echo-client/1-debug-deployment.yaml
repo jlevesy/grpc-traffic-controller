@@ -32,6 +32,8 @@ spec:
             - "gtc-dev.default.svc.cluster.local:16000"
             - "-out"
             - "/mnt/client/xds-bootstrap.json"
+            - "-zone"
+            - "zone-a"
           volumeMounts:
             - name: xds-bootstrap
               mountPath: /mnt/client

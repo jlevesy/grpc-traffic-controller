@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"hash"
 
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	anyv1 "github.com/golang/protobuf/ptypes/any"
 )
 
 type resolveRequest struct {
 	resourceNames []string
 	typeUrl       string
+	nodeInfo      *v3.Node
 }
 
 type resolveResponse struct {

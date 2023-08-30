@@ -23,7 +23,12 @@ type cred struct {
 }
 
 type node struct {
-	ID string `json:"id"`
+	ID       string   `json:"id"`
+	Locality Locality `json:"locality,omitempty"`
+}
+
+type Locality struct {
+	Zone string `json:"zone"`
 }
 
 func main() {
@@ -31,11 +36,13 @@ func main() {
 		out       string
 		serverURI string
 		nodeID    string
+		zone      string
 	)
 
 	flag.StringVar(&out, "out", "./bootstrap.json", "path to write the generated config")
 	flag.StringVar(&serverURI, "server-uri", "", "uri of the xds server")
 	flag.StringVar(&nodeID, "node-id", "", "id of the node")
+	flag.StringVar(&zone, "zone", "", "current zone we're running on")
 	flag.Parse()
 
 	if serverURI == "" {
@@ -56,6 +63,9 @@ func main() {
 		},
 		Node: node{
 			ID: nodeID,
+			Locality: Locality{
+				Zone: zone,
+			},
 		},
 	}
 

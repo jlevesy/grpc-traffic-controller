@@ -12,3 +12,19 @@ spec:
     targetPort: grpc
   selector:
     app: echo-server-v1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-server-v1-tar
+  namespace: echo-server
+  annotations:
+    service.kubernetes.io/topology-mode: Auto
+spec:
+  ports:
+  - port: 3333
+    name: grpc
+    protocol: TCP
+    targetPort: grpc
+  selector:
+    app: echo-server-v1
