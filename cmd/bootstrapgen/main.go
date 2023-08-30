@@ -1,72 +1,44 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/jlevesy/grpc-traffic-controller/bootstrap"
 )
-
-type bootstrapConfig struct {
-	XDSServers []xdsServer `json:"xds_servers"`
-	Node       node        `json:"node"`
-}
-
-type xdsServer struct {
-	URI      string   `json:"server_uri"`
-	Features []string `json:"server_features"`
-	Creds    []cred   `json:"channel_creds"`
-}
-
-type cred struct {
-	Type string `json:"type"`
-}
-
-type node struct {
-	ID       string   `json:"id"`
-	Locality Locality `json:"locality,omitempty"`
-}
-
-type Locality struct {
-	Zone string `json:"zone"`
-}
 
 func main() {
 	var (
 		out       string
 		serverURI string
-		nodeID    string
-		zone      string
+		provider  string
 	)
 
-	flag.StringVar(&out, "out", "./bootstrap.json", "path to write the generated config")
 	flag.StringVar(&serverURI, "server-uri", "", "uri of the xds server")
-	flag.StringVar(&nodeID, "node-id", "", "id of the node")
-	flag.StringVar(&zone, "zone", "", "current zone we're running on")
+	flag.StringVar(&out, "out", "./bootstrap.json", "path to write the generated config")
+	flag.StringVar(&provider, "provider", bootstrap.ProviderTypeEnv, "provider to use")
 	flag.Parse()
 
 	if serverURI == "" {
 		log.Fatal("please provide a server-uri")
 	}
 
-	if nodeID == "" {
-		nodeID, _ = os.Hostname()
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+
+	configProvider, err := bootstrap.BuildConfigProvider(ctx, provider)
+	if err != nil {
+		log.Fatal("unable to build config provider", err)
 	}
 
-	cfg := bootstrapConfig{
-		XDSServers: []xdsServer{
-			{
-				URI:      serverURI,
-				Features: []string{"xds_v3"},
-				Creds:    []cred{{Type: "insecure"}},
-			},
-		},
-		Node: node{
-			ID: nodeID,
-			Locality: Locality{
-				Zone: zone,
-			},
-		},
+	cfg, err := configProvider.Provide(ctx, serverURI)
+	if err != nil {
+		log.Fatal("unable to retrieve bootstrap config", err)
 	}
 
 	output, err := os.Create(out)
