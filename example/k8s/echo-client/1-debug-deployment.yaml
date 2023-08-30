@@ -27,13 +27,14 @@ spec:
         - image: ko://github.com/jlevesy/grpc-traffic-controller/cmd/bootstrapgen
           imagePullPolicy: Always
           name: gen-bootstrap
+          env:
+            - name: GTC_ZONE
+              value: zone-a
           args:
             - "-server-uri"
             - "gtc-dev.default.svc.cluster.local:16000"
             - "-out"
             - "/mnt/client/xds-bootstrap.json"
-            - "-zone"
-            - "zone-a"
           volumeMounts:
             - name: xds-bootstrap
               mountPath: /mnt/client
