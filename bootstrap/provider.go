@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	ProviderTypeEnv = "env"
+	ProviderTypeEnv    = "env"
+	ProviderTypeGcloud = "gcloud"
 )
 
 type UnknownProviderError string
@@ -21,10 +22,12 @@ type ConfigProvider interface {
 	Provide(ctx context.Context, serverURI string) (*BootstrapConfig, error)
 }
 
-func BuildConfigProvider(ctx context.Context, providerType string) (ConfigProvider, error) {
+func BuildConfigProvider(_ context.Context, providerType string) (ConfigProvider, error) {
 	switch strings.ToLower(providerType) {
 	case ProviderTypeEnv:
 		return &envProvider{}, nil
+	case ProviderTypeGcloud:
+		return &gcloudProvider{}, nil
 	default:
 		return nil, UnknownProviderError(providerType)
 	}

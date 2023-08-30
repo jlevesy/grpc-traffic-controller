@@ -8,15 +8,9 @@ import (
 type envProvider struct{}
 
 func (e *envProvider) Provide(_ context.Context, serverURI string) (*BootstrapConfig, error) {
-	nodeID := os.Getenv("GTC_NODE_ID")
-
-	if nodeID == "" {
-		var err error
-
-		nodeID, err = os.Hostname()
-		if err != nil {
-			return nil, err
-		}
+	nodeID, err := getNodeID()
+	if err != nil {
+		return nil, err
 	}
 
 	return &BootstrapConfig{
@@ -34,4 +28,14 @@ func (e *envProvider) Provide(_ context.Context, serverURI string) (*BootstrapCo
 			},
 		},
 	}, nil
+}
+
+func getNodeID() (string, error) {
+	nodeID := os.Getenv("GTC_NODE_ID")
+
+	if nodeID != "" {
+		return nodeID, nil
+	}
+
+	return os.Hostname()
 }
