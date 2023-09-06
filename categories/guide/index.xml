@@ -1,0 +1,8 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>gRPC Traffic Controller – Guide</title><link>jlevesy.github.io/grpc-traffic-controller/categories/guide/</link><description>Recent content in Guide on gRPC Traffic Controller</description><generator>Hugo -- gohugo.io</generator><language>en</language><atom:link href="jlevesy.github.io/grpc-traffic-controller/categories/guide/index.xml" rel="self" type="application/rss+xml"/><item><title>Docs: Installing gRPC Traffic Controller</title><link>jlevesy.github.io/grpc-traffic-controller/docs/getting-started/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>jlevesy.github.io/grpc-traffic-controller/docs/getting-started/</guid><description>
+&lt;h2 id="prerequisites">Prerequisites&lt;/h2>
+&lt;ul>
+&lt;li>Kubernetes 1.21+ (requires endpoint slices).&lt;/li>
+&lt;li>Helm 3&lt;/li>
+&lt;/ul>
+&lt;h2 id="installation">Installation&lt;/h2>
+&lt;p>gRPC traffic controller has no release yet so we can&amp;rsquo;t properly document this, let&amp;rsquo;s fix this in a near future&lt;/p></description></item><item><title>Docs: Exposing your first gRPC service</title><link>jlevesy.github.io/grpc-traffic-controller/docs/first-steps/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>jlevesy.github.io/grpc-traffic-controller/docs/first-steps/</guid><description/></item></channel></rss>
