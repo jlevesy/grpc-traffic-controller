@@ -18,6 +18,10 @@ Some features I wish to add:
 - Prometheus Metrics
 - Integration of SPIFFE and SPIRE, for both TLS and RBAC.
 
+## Documentation
+
+Please refer to the [official website](https://jlevesy.github.io/grpc-traffic-controller).
+
 ## Usage Examples
 
 See [the example setup](./example/k8s/echo-server/1-grpc-service.yaml).
