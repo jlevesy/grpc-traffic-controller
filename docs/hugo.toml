@@ -1,4 +1,4 @@
-baseURL = "jlevesy.github.io/grpc-traffic-controller"
+baseURL = "https://jlevesy.github.io/grpc-traffic-controller"
 title = "gRPC Traffic Controller"
 
 # Language settings
