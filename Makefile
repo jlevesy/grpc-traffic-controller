@@ -83,6 +83,13 @@ deploy: generate deploy_crds
 		--set logLevel=$(LOG_LEVEL) \
 		gtc-dev ./helm | KO_DOCKER_REPO=gtc-registry.localhost:5000 ko apply -B -t dev -f -
 
+
+##@ Docs
+
+.PHONY: serve_docs
+serve_docs:
+	hugo serve --source=./docs
+
 ##@ Build
 
 .PHONY: build
