@@ -90,6 +90,10 @@ deploy: generate deploy_crds
 serve_docs:
 	hugo serve --source=./docs
 
+.PHONY: lint_docs
+lint_docs:
+	typos ./docs
+
 ##@ Build
 
 .PHONY: build
