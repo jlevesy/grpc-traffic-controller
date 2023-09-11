@@ -37,6 +37,23 @@ jobs:
           version: v1.53.3
           args: --timeout 5m
 
+  check-docs:
+    name: Check documentation
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: './go.mod'
+          check-latest: true
+
+      - name: Check spelling for documentation
+        uses: crate-ci/typos@v1.16.11
+        with:
+          files: ./docs
+
   release:
     name: Release
     runs-on: ubuntu-22.04
