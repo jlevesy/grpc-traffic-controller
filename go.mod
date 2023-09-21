@@ -3,6 +3,7 @@ module github.com/jlevesy/grpc-traffic-controller
 go 1.21
 
 require (
+	cloud.google.com/go/compute/metadata v0.2.3
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/golang/protobuf v1.5.3
 	github.com/stretchr/testify v1.8.4
@@ -10,15 +11,14 @@ require (
 	golang.org/x/sync v0.3.0
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0
-	k8s.io/api v0.28.1
-	k8s.io/apimachinery v0.28.1
-	k8s.io/client-go v0.28.1
+	k8s.io/api v0.28.2
+	k8s.io/apimachinery v0.28.2
+	k8s.io/client-go v0.28.2
 	sigs.k8s.io/structured-merge-diff/v4 v4.3.0
 )
 
 require (
 	cloud.google.com/go/compute v1.23.0 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
