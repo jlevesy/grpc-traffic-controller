@@ -7,7 +7,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/golang/protobuf v1.5.3
 	github.com/stretchr/testify v1.8.4
-	go.uber.org/zap v1.25.0
+	go.uber.org/zap v1.26.0
 	golang.org/x/sync v0.3.0
 	google.golang.org/grpc v1.58.1
 	google.golang.org/protobuf v1.31.0
@@ -19,7 +19,6 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.23.0 // indirect
-	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cncf/udpa/go v0.0.0-20220112060539-c52dc94e7fbe // indirect
