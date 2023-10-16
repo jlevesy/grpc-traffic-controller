@@ -50,7 +50,7 @@ jobs:
           check-latest: true
 
       - name: Check spelling for documentation
-        uses: crate-ci/typos@v1.16.12
+        uses: crate-ci/typos@v1.16.20
         with:
           files: ./docs
 
